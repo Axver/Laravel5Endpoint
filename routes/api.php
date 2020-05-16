@@ -24,7 +24,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProfileController@newinfo'
         ]);
-
+    Route::post('/user/editprofile',
+        [
+            'uses'=>'ProfileController@edit'
+        ]);
 
 
 

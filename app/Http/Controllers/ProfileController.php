@@ -26,7 +26,6 @@ class ProfileController extends Controller
             ->select('profiles.company', 'profiles.photo', 'users.name',"users.email")
             ->where('user_id',$user_id);
 
-
         if($CheckProfile)
         {
             $response=[
@@ -49,7 +48,56 @@ class ProfileController extends Controller
 
     public function edit(Request $request)
     {
-        return "Berhasil";
+        $this->validate($request,
+            [
+                'photo'=>'required',
+                'company'=>'required',
+                'user_id'=>'required',
+            ]);
+
+        $photo=$request->input('photo');
+        $company=$request->input('company');
+        $user_id=$request->input('user_id');
+
+        //     Periksa apakah data sudah ada
+        $CheckProfile = Profile::where('user_id', '=', $user_id)->first();
+
+        if (! $CheckProfile)
+        {
+
+            return response()->json(
+                [
+                    'msg'=>'Profile Doesnt Exist'
+                ], 404
+            );
+
+        }
+        else
+        {
+//            Update Data
+            $CheckProfile->photo=$photo;
+            $CheckProfile->company=$company;
+
+
+            if($CheckProfile->save())
+            {
+                return response()->json(
+                    [
+                        'msg'=>'Profile Berhasil Diupdate'
+                    ], 201
+                );
+            }
+            else
+            {
+                return response()->json(
+                    [
+                        'msg'=>'Profile Gagal Diupdate'
+                    ], 201
+                );
+            }
+        }
+
+
     }
 
     public function newinfo(Request $request)
