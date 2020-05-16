@@ -15,6 +15,18 @@ Route::group(['prefix'=>'v1'],function()
             'uses'=>'AuthController@signin'
         ]);
 
+    Route::get('/user/profile',
+        [
+            'uses'=>'ProfileController@profile'
+        ]);
+
+    Route::post('/user/addprofile',
+        [
+            'uses'=>'ProfileController@newinfo'
+        ]);
+
+
+
 
 }
 );

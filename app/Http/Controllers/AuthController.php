@@ -145,4 +145,5 @@ class AuthController extends Controller
 
         return response()->json($response,404);
     }
+
 }
