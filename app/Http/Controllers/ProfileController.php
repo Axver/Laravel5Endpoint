@@ -67,7 +67,7 @@ class ProfileController extends Controller
 
             return response()->json(
                 [
-                    'msg'=>'Profile Doesnt Exist'
+                    'message'=>'Profile Doesnt Exist'
                 ], 404
             );
 
@@ -83,7 +83,7 @@ class ProfileController extends Controller
             {
                 return response()->json(
                     [
-                        'msg'=>'Profile Berhasil Diupdate'
+                        'message'=>'Profile Berhasil Diupdate'
                     ], 201
                 );
             }
@@ -91,7 +91,7 @@ class ProfileController extends Controller
             {
                 return response()->json(
                     [
-                        'msg'=>'Profile Gagal Diupdate'
+                        'message'=>'Profile Gagal Diupdate'
                     ], 201
                 );
             }

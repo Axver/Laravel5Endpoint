@@ -28,6 +28,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProfileController@edit'
         ]);
+    Route::post('/forgot/sendcode',
+        [
+            'uses'=>'ForgotController@sendmail'
+        ]);
 
 
 
