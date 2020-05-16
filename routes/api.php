@@ -32,6 +32,14 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ForgotController@sendmail'
         ]);
+    Route::post('/forgot/verifcode',
+        [
+            'uses'=>'ForgotController@getcode'
+        ]);
+    Route::post('/forgot/newpass',
+        [
+            'uses'=>'ForgotController@newpassword'
+        ]);
 
 
 
