@@ -140,13 +140,39 @@ class ForgotController extends Controller
                 'code'=>'required'
             ]);
 
+//        Periksa apakah token baru sama atau tidak
+
+
+//        Proses untuk mengubah password lama
         $new_password=$request->input('password');
         $token=$request->input('token');
-        $code=$request->input('kode');
+        $code=$request->input('code');
 //        periksa email yang disimpan di db sesuai dengan nomor code
-        $info = DB::table('password_resets')->where('token', $code)->get();
 
-        return $info;
+        $info = DB::table('password_resets')->select('email')->where('token', $code)->first();
+
+        $email=$info->email;
+//        Ubah password data lama
+        $affected = DB::table('users')
+            ->where('email', $email)
+            ->update(['password' => bcrypt($new_password)]);
+
+        if(!$affected)
+        {
+            $response=[
+                'status'=>'error',
+                'message'=>'Gagal Mengubah Password',
+            ];
+        }
+        else
+        {
+            $response=[
+                'status'=>'success',
+                'message'=>'Password Berhasil Diubah',
+            ];
+        }
+        return $response;
+
 
     }
 }
