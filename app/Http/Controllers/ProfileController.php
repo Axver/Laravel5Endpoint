@@ -4,19 +4,47 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Profile;
+use DB;
 
 class ProfileController extends Controller
 {
     public function  __construct()
     {
-    $this->middleware('jwt.auth');
+    $this->middleware('jwt.auth',['except'=>['profile']]);
     }
 
     public function profile(Request $request)
     {
-//        Get Profile
-        
-        return "Berhasil";
+//        Mendapatkan Profile User Tertentu
+        $this->validate($request,
+            [
+                'user_id'=>'required',
+            ]);
+        $user_id=$request->input('user_id');
+        $CheckProfile =  DB::table('profiles')
+            ->join('users', 'profiles.user_id', '=', 'users.id')
+            ->select('profiles.company', 'profiles.photo', 'users.name',"users.email")
+            ->where('user_id',$user_id);
+
+
+        if($CheckProfile)
+        {
+            $response=[
+                'status'=>'0',
+            'data'=>$CheckProfile->get()
+            ];
+        }
+        else
+        {
+            $response=[
+                'status'=>'1',
+                'message'=>'Failed'
+            ];
+        }
+
+        return $response;
+
+
     }
 
     public function edit(Request $request)
