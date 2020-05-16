@@ -82,15 +82,71 @@ class ForgotController extends Controller
 
     }
 
-    public function getcode()
+    public function getcode(Request $request)
     {
 //        Mendapatkan kode yang diinputkan oleh user
 
+        //        ubah password user
+        $this->validate($request,
+            [
+                'code'=>'required',
+                'token'=>'required'
+            ]);
+        $code=$request->input('code');
+        $user_token=$request->input('token');
+//        Check token
+        $token = Cache::get('token');
+        $code_chace = Cache::get('key');
+        $new_token=md5(uniqid(rand(), true));
+        if($token==$user_token)
+        {
+            if($code==$code_chace)
+            {
+                $response=[
+                    'status'=>'success',
+                    'message'=>'Token dan Kode Diverifikasi',
+                    'token'=>$new_token,
+                    'kode'=>$code_chace
+                ];
+
+            }
+            else {
+                $response=[
+                    'status'=>'error',
+                    'message'=>'Kode Verifikasi Salah',
+                    'token'=>$new_token
+                ];
+            }
+        }
+        else
+        {
+            $response=[
+                'status'=>'error',
+                'message'=>'Token dan Kode Salah',
+                'token'=>$new_token
+            ];
+        }
+
+        return $response;
+
     }
 
-    public function newpassword()
+    public function newpassword(Request $request)
     {
-//        ubah password user
+        $this->validate($request,
+            [
+                'password'=>'required',
+                'token'=>'required',
+                'code'=>'required'
+            ]);
+
+        $new_password=$request->input('password');
+        $token=$request->input('token');
+        $code=$request->input('kode');
+//        periksa email yang disimpan di db sesuai dengan nomor code
+        $info = DB::table('password_resets')->where('token', $code)->get();
+
+        return $info;
 
     }
 }
