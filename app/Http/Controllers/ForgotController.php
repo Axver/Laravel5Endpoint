@@ -96,8 +96,13 @@ class ForgotController extends Controller
         $user_token=$request->input('token');
 //        Check token
         $token = Cache::get('token');
+
         $code_chace = Cache::get('key');
-        $new_token=md5(uniqid(rand(), true));
+
+//        Tambahkan waktu 1 menit untuk memasukkan token dalam chace
+        $expiresAt = Carbon::now()->addMinutes(1);
+        Cache::put('token', $token, $expiresAt);
+
         if($token==$user_token)
         {
             if($code==$code_chace)
@@ -105,7 +110,7 @@ class ForgotController extends Controller
                 $response=[
                     'status'=>'success',
                     'message'=>'Token dan Kode Diverifikasi',
-                    'token'=>$new_token,
+                    'token'=>$token,
                     'kode'=>$code_chace
                 ];
 
@@ -114,7 +119,7 @@ class ForgotController extends Controller
                 $response=[
                     'status'=>'error',
                     'message'=>'Kode Verifikasi Salah',
-                    'token'=>$new_token
+
                 ];
             }
         }
@@ -123,7 +128,7 @@ class ForgotController extends Controller
             $response=[
                 'status'=>'error',
                 'message'=>'Token dan Kode Salah',
-                'token'=>$new_token
+
             ];
         }
 
@@ -151,26 +156,40 @@ class ForgotController extends Controller
 
         $info = DB::table('password_resets')->select('email')->where('token', $code)->first();
 
-        $email=$info->email;
-//        Ubah password data lama
-        $affected = DB::table('users')
-            ->where('email', $email)
-            ->update(['password' => bcrypt($new_password)]);
-
-        if(!$affected)
+        if($info)
         {
-            $response=[
-                'status'=>'error',
-                'message'=>'Gagal Mengubah Password',
-            ];
+            $email=$info->email;
+//        Ubah password data lama
+            $affected = DB::table('users')
+                ->where('email', $email)
+                ->update(['password' => bcrypt($new_password)]);
+//        Hapus data lama dari password reset
+            DB::table('password_resets')->where('email', $email)->delete();
+
+            if(!$affected)
+            {
+                $response=[
+                    'status'=>'error',
+                    'message'=>'Gagal Mengubah Password',
+                ];
+            }
+            else
+            {
+                $response=[
+                    'status'=>'success',
+                    'message'=>'Password Berhasil Diubah',
+                ];
+            }
         }
         else
         {
             $response=[
-                'status'=>'success',
-                'message'=>'Password Berhasil Diubah',
+                'status'=>'error',
+                'message'=>'Kode Verifikasi Belum Direquest',
             ];
         }
+
+
         return $response;
 
 
