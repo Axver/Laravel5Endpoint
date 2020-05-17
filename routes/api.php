@@ -41,6 +41,19 @@ Route::group(['prefix'=>'v1'],function()
             'uses'=>'ForgotController@newpassword'
         ]);
 
+    Route::get('/produk/listtraining',
+        [
+            'uses'=>'ProdukCOntroller@listtraining'
+        ]);
+    Route::get('/produk/bytraining',
+        [
+            'uses'=>'ProdukCOntroller@produkbytraining'
+        ]);
+    Route::get('/produk/bypaket',
+        [
+            'uses'=>'ProdukCOntroller@paketbytraining'
+        ]);
+
 
 
 }
