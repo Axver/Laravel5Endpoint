@@ -272,6 +272,8 @@ public function pembelian(Request $request)
 
     }
 
+    return response()->json($response,404);
+
 
 
 
