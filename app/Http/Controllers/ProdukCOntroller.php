@@ -152,9 +152,8 @@ public function pembelian(Request $request)
 //           List Email diterima dalam bentuk teks dan dipish dengan tanda koma
             $email=$request->input('email');
 
-            DB::transaction(function() use ($id_produk,$id_user,$email){
 
-
+            $var=DB::transaction(function() use ($id_produk,$id_user,$email){
 //                Check Max user
                 $max=$user = DB::table('paket')->where('id', $id_produk)->first();
                 if($max)
@@ -174,6 +173,7 @@ public function pembelian(Request $request)
                         );
 
                         $i=0;
+                        $account_generated=[];
                         while($i<$jumlah_email)
                         {
 //                            generate user baru sesuai dengan data ini
@@ -185,9 +185,21 @@ public function pembelian(Request $request)
 
                             try
                             {
+//                                Check email jika sudah pernah terdaftar jika sudah kirimkan notifiksi untuk menggunakan password lama
+                                if($akun=$user = DB::table('users')->where('email', $email_g)->first())
+                                {
+                                    $account_generated[$i]='Email:'.$email_g.' '.'Password:Password Lama';
+                                }
+                                else
+                                {
+                                    $account_generated[$i]='Email:'.$email_g.' '.'Password:'.$password;
+                                }
+
+//                                    Insert saja
                                 DB::table('users')->insert(
                                     ['name' => $name_g, 'email' => $email_g,'password'=>$password_crypt,'created_at'=>Carbon::now(),'updated_at'=>Carbon::now()]
                                 );
+
                             }
                             catch (\PDOException $e)
                             {
@@ -199,11 +211,25 @@ public function pembelian(Request $request)
 
                         }
 
+                        return response()->json(
+                            [
+                                'msg'=>'success',
+                                'data'=>$account_generated
+                            ], 201
+                        );
+
+
+
                     }
                     else
                     {
 
-
+                        return response()->json(
+                            [
+                                'msg'=>'failed',
+                                'message'=>'Data email yang diinputkan melebihi kuota'
+                            ], 404
+                        );
 
 
                     }
@@ -211,14 +237,19 @@ public function pembelian(Request $request)
                 }
                 else
                 {
-
-
-
-
+                    return response()->json(
+                        [
+                            'msg'=>'failed',
+                            'message'=>'Max Kuota Tidak Ditemukan'
+                        ], 404
+                    );
                 }
 
-                return "Brrhasil";
             });
+
+            return $var;
+
+
 
 
 
@@ -237,7 +268,7 @@ public function pembelian(Request $request)
         ];
 
 
-        return $response;
+
 
     }
 
