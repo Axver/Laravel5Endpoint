@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Webpatser\Uuid\Uuid;
+use Carbon\Carbon;
 
 class ProdukCOntroller extends Controller
 {
@@ -49,6 +52,7 @@ public function produkbytraining(Request $request)
     {
         $response=[
             'status'=>'success',
+            'jenis'=>'produk',
             'data'=>$produk
 
         ];
@@ -77,10 +81,81 @@ public function paketbytraining(Request $request)
     {
         $response=[
             'status'=>'success',
+            'jenis'=>'paket',
             'data'=>$paket
 
         ];
     }
+    return $response;
+}
+
+//Pembelian Produk
+public function pembelian(Request $request)
+{
+    $this->validate($request,
+        [
+            'id_produk'=>'required',
+            'token'=>'required',
+            'jenis'=>'required'
+        ]);
+
+    $id_produk=$request->input('id_produk');
+    $token=$request->input('token');
+    $jenis=$request->input('jenis');
+
+    //        Check remember token
+    if($token_user=$user = DB::table('users')->where('remember_token', $token)->first())
+    {
+        //    Jika jenisnya adalah produk maka masukkan ke tabel produk
+        //    Jika jenisnya paket maka masukkan ke tabel paket
+        $id_user=$token_user->id;
+
+        if($jenis=='produk')
+        {
+//            Buy Product Insert
+            $uuid=Uuid::generate()->string;
+            $insert=DB::table('pembelian_produk')->insert(
+                array('id_pembelian' =>$uuid , 'id_produk' => $id_produk,'id_user'=>$id_user,'created_at'=>Carbon::now(),'status_pembayaran'=>'No')
+            );
+
+            if(!$insert)
+            {
+                $response=[
+                    'status'=>'failed',
+                    'msg'=>'Gagal Membeli Produk'
+                ];
+            }
+            else
+            {
+                $data = DB::table('pembelian_produk')
+                    ->select('id_pembelian','status_pembayaran','bukti_pembayaran','nama_produk','deskripsi_produk','foto','harga','zoom')
+                    ->join('produk', 'pembelian_produk.id_produk', '=', 'produk.id')
+                    ->where('pembelian_produk.id_pembelian', $uuid)
+                    ->get();
+                $response=[
+                    'status'=>'success',
+                    'data'=>$data
+                ];
+            }
+
+
+        }
+        else
+        {
+
+        }
+
+    }
+    else
+    {
+        $response=[
+            'status'=>'failed',
+            'message'=>'Token Not Match'
+        ];
+    }
+
+
+
     return $response;
 }
 

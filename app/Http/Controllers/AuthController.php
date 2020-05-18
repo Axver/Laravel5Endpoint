@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use JWTAuth;
 use JWTAuthException;
 use App\User;
+use Illuminate\Support\Facades\DB;
 
 class AuthController extends Controller
 {
@@ -133,6 +134,11 @@ class AuthController extends Controller
                 'user'=>$user,
                 'token'=>$token
             ];
+
+//            Update Remember token pada tabel user
+            $affected = DB::table('users')
+                ->where('email', $email)
+                ->update(['remember_token' => $token]);
 
             return response()->json($response,201);
 

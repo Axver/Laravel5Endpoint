@@ -53,6 +53,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProdukCOntroller@paketbytraining'
         ]);
+    Route::post('/produk/pembelian',
+        [
+            'uses'=>'ProdukCOntroller@pembelian'
+        ]);
 
 
 
