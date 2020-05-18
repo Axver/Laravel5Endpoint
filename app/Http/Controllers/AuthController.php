@@ -9,6 +9,7 @@ use JWTAuthException;
 use App\User;
 use Illuminate\Support\Facades\DB;
 
+
 class AuthController extends Controller
 {
     public function store(Request $request)

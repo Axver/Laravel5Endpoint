@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Webpatser\Uuid\Uuid;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Mail\ListUser;
+use Illuminate\Support\Facades\Mail;
 
 class ProdukCOntroller extends Controller
 {
@@ -110,6 +112,7 @@ public function pembelian(Request $request)
         //    Jika jenisnya adalah produk maka masukkan ke tabel produk
         //    Jika jenisnya paket maka masukkan ke tabel paket
         $id_user=$token_user->id;
+        $email_user=$token_user->email;
 
         if($jenis=='produk')
         {
@@ -153,7 +156,7 @@ public function pembelian(Request $request)
             $email=$request->input('email');
 
 
-            $var=DB::transaction(function() use ($id_produk,$id_user,$email){
+            $var=DB::transaction(function() use ($id_produk,$id_user,$email,$email_user){
 //                Check Max user
                 $max=$user = DB::table('paket')->where('id', $id_produk)->first();
                 if($max)
@@ -211,6 +214,9 @@ public function pembelian(Request $request)
 
                         }
 
+
+                        Mail::to($email_user)->send(new ListUser($account_generated,$email));
+
                         return response()->json(
                             [
                                 'msg'=>'success',
@@ -246,6 +252,9 @@ public function pembelian(Request $request)
                 }
 
             });
+
+//            Kirim emailnya ke user
+
 
             return $var;
 
