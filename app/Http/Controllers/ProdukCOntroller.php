@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use App\Mail\ListUser;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 
 class ProdukCOntroller extends Controller
 {
@@ -122,6 +123,10 @@ public function pembelian(Request $request)
                 array('id_pembelian' =>$uuid , 'id_produk' => $id_produk,'id_user'=>$id_user,'created_at'=>Carbon::now(),'status_pembayaran'=>'No')
             );
 
+            $expiresAt = Carbon::now()->addMinutes(1500);
+            Cache::put('bataspembayaran', $uuid, $expiresAt);
+            Cache::put($uuid, $uuid, $expiresAt);
+
             if(!$insert)
             {
                 $response=[
@@ -138,6 +143,8 @@ public function pembelian(Request $request)
                     ->get();
                 $response=[
                     'status'=>'success',
+                    'jenis'=>'produk',
+                    'expired'=>Carbon::now(),
                     'data'=>$data
                 ];
             }
@@ -174,6 +181,11 @@ public function pembelian(Request $request)
                         $insert=DB::table('pembelian_paket')->insert(
                             array('id_pembelian' =>$uuid , 'id' => $id_produk,'id_user'=>$id_user,'list_email'=>$email)
                         );
+//                        Redis 25 jam expired
+                        $expiresAt = Carbon::now()->addMinutes(1500);
+                        Cache::put('bataspembayaran', $uuid, $expiresAt);
+//                        Cache::put($uuid, $uuid, $expiresAt);
+
 
                         $i=0;
                         $account_generated=[];
@@ -191,11 +203,11 @@ public function pembelian(Request $request)
 //                                Check email jika sudah pernah terdaftar jika sudah kirimkan notifiksi untuk menggunakan password lama
                                 if($akun=$user = DB::table('users')->where('email', $email_g)->first())
                                 {
-                                    $account_generated[$i]='Email:'.$email_g.' '.'Password:Password Lama';
+                                    $account_generated[$i]=$email_g.'|'.'Password:Password Lama';
                                 }
                                 else
                                 {
-                                    $account_generated[$i]='Email:'.$email_g.' '.'Password:'.$password;
+                                    $account_generated[$i]=$email_g.'|'.'Password:'.$password;
                                 }
 
 //                                    Insert saja
@@ -213,18 +225,21 @@ public function pembelian(Request $request)
                             $i++;
 
                         }
+                        $expiresAt = Carbon::now()->addMinutes(1500);
+                        Cache::put($uuid, $account_generated, $expiresAt);
 
 
-                        Mail::to($email_user)->send(new ListUser($account_generated,$email));
 
                         return response()->json(
                             [
                                 'msg'=>'success',
-                                'data'=>$account_generated
+                                'message'=>'Pembelian Produk Berhasil Ditambahkan',
+                                'jenis'=>'paket',
+                                'id_barang'=>$uuid,
+                                'expired'=>Carbon::now(),
+                                'registered_user'=>Cache::get($uuid)
                             ], 201
                         );
-
-
 
                     }
                     else
@@ -259,14 +274,7 @@ public function pembelian(Request $request)
             return $var;
 
 
-
-
-
-
-
         }
-
-
 
     }
     else
@@ -277,18 +285,99 @@ public function pembelian(Request $request)
         ];
 
 
-
-
     }
 
     return response()->json($response,404);
+}
+
+//Function Upload Bukti Pembayaran
+
+public function uploadbukti(Request $request)
+{
+    return "Berhasil";
+}
+
+public function verifikasi(Request $request)
+{
+    $this->validate($request,
+        [
+            'id_pembelian'=>'required',
+            'jenis'=>'required'
+        ]);
+    $id_pembelian=$request->input('id_pembelian');
+    $jenis_produk=$request->input('jenis');
+
+//    return $id_pembelian."=====".Cache::get($id_pembelian);
+
+    if($jenis_produk=='paket')
+    {
+//        Update pada pembelian paket
+        if (Cache::has($id_pembelian)) {
+            $var=DB::transaction(function() use ($id_pembelian){
+                $affected = DB::table('pembelian_paket')
+                    ->where('id_pembelian', $id_pembelian)
+                    ->update(['status_pembayaran' => "Yes"]);
+                $id_produk=DB::table('pembelian_paket')->select('id')->where('id_pembelian',$id_pembelian)->first();
 
 
 
+                $list_user=Cache::get($id_pembelian);
+                $count=count($list_user);
+                $x=0;
+                $new_list_email=[];
+                while($x<$count)
+                {
+//                    Explode data
+                    $email_g=explode('|',$list_user[$x]);
+//                    Tambahkan kedalam database
+                    $uuid=Uuid::generate()->string;
+                    $id_user=DB::table('users')->select('id')->where('email',$email_g[0])->first();
+                    DB::table('pembelian_paket')->insert(
+                        ['id_pembelian' => $uuid, 'id' => $id_produk->id,'id_user'=>$id_user->id,'status_pembayaran'=>'Yes']
+                    );
 
+                    $x++;
+                }
+
+
+//Tambahkan user ke data pembeli
+                $response=[
+                    'status'=>'success',
+                    'message'=>'Pembelian diverifikasi',
+                    'data'=>$list_user,
+                ];
+
+                return $response;
+            });
+
+            $list_user=Cache::get($id_pembelian);
+
+            if($var)
+            {
+               $datauser=  $data = DB::table('pembelian_paket')
+                   ->select('email')
+                   ->join('users', 'pembelian_paket.id_user', '=', 'users.id')
+                   ->where('pembelian_paket.id_pembelian', $id_pembelian)
+                   ->first();
+                Mail::to($datauser->email)->send(new ListUser($list_user,$datauser->email));
+            }
+
+            return $var;
+        }
+
+    }
+    else
+    {
+//        Update pada pembelian produk
+    }
 
 
 }
+
+
+
+
+
 
 
 
