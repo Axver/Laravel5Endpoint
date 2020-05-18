@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Webpatser\Uuid\Uuid;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class ProdukCOntroller extends Controller
 {
@@ -142,8 +143,90 @@ public function pembelian(Request $request)
         }
         else
         {
+//            Insert untuk pembelian perpaket dan mengatur email yang akan ditambahkan
+            $this->validate($request,
+                [
+                    'email'=>'required',
+                    'id_produk'
+                ]);
+//           List Email diterima dalam bentuk teks dan dipish dengan tanda koma
+            $email=$request->input('email');
+
+            DB::transaction(function() use ($id_produk,$id_user,$email){
+
+
+//                Check Max user
+                $max=$user = DB::table('paket')->where('id', $id_produk)->first();
+                if($max)
+                {
+                    $max_user=$max->max_user;
+//                    Check email length
+                    $list_email=explode(',',$email);
+                    $jumlah_email=count($list_email);
+
+                    if($jumlah_email<=$max_user)
+                    {
+//                        Jika jumlah sesuai kriteria lakukan insert ke database disini
+                        $uuid=Uuid::generate()->string;
+
+                        $insert=DB::table('pembelian_paket')->insert(
+                            array('id_pembelian' =>$uuid , 'id' => $id_produk,'id_user'=>$id_user,'list_email'=>$email)
+                        );
+
+                        $i=0;
+                        while($i<$jumlah_email)
+                        {
+//                            generate user baru sesuai dengan data ini
+                            $name_g=Str::random();
+                            $email_g=$list_email[$i];
+                            $password=Str::random();
+                            $password_crypt=bcrypt($password);
+//                            Insert data kedalam database
+
+                            try
+                            {
+                                DB::table('users')->insert(
+                                    ['name' => $name_g, 'email' => $email_g,'password'=>$password_crypt,'created_at'=>Carbon::now(),'updated_at'=>Carbon::now()]
+                                );
+                            }
+                            catch (\PDOException $e)
+                            {
+
+                            }
+
+
+                            $i++;
+
+                        }
+
+                    }
+                    else
+                    {
+
+
+
+
+                    }
+
+                }
+                else
+                {
+
+
+
+
+                }
+
+                return "Brrhasil";
+            });
+
+
+
+
 
         }
+
+
 
     }
     else
@@ -152,12 +235,21 @@ public function pembelian(Request $request)
             'status'=>'failed',
             'message'=>'Token Not Match'
         ];
+
+
+        return $response;
+
     }
 
 
 
-    return $response;
+
+
+
 }
+
+
+
 
 
 }
