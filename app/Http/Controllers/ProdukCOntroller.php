@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\Verifikasi;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -364,11 +365,53 @@ public function verifikasi(Request $request)
 
             return $var;
         }
+        else
+        {
+           return $response=[
+                'status'=>'failed',
+                'message'=>'Waktu Verifikasi Sudah Expired'
+            ];
+        }
 
     }
     else
     {
 //        Update pada pembelian produk
+        if (Cache::has($id_pembelian)) {
+            $var=DB::transaction(function() use ($id_pembelian){
+//              Update tabel pembelian_produk
+                $affected = DB::table('pembelian_produk')
+                    ->where('id_pembelian', $id_pembelian)
+                    ->update(['status_pembayaran' => "Yes"]);
+
+                $response=[
+                    'status'=>'succcess',
+                    'message'=>'Verifikasi Sukses'
+                ];
+
+                return $response;
+
+            });
+
+            if($var)
+            {
+                $datauser=  $data = DB::table('pembelian_produk')
+                    ->select('email')
+                    ->join('users', 'pembelian_produk.id_user', '=', 'users.id')
+                    ->where('pembelian_produk.id_pembelian', $id_pembelian)
+                    ->first();
+                Mail::to($datauser->email)->send(new Verifikasi());
+            }
+
+            return $var;
+        }
+        else
+        {
+           return $response=[
+                'status'=>'failed',
+                'message'=>'Waktu Verifikasi Sudah Expired'
+            ];
+        }
     }
 
 
