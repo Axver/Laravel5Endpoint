@@ -28,6 +28,7 @@ class ForgotController extends Controller
                 'email'=>$email
 
             ];
+
         $CheckProfile = User::where('email', '=', $email)->first();
         if(!$CheckProfile)
         {
@@ -38,21 +39,24 @@ class ForgotController extends Controller
             );
         }
 
-        if (Cache::has('token')) {
+        if (Cache::has($email)) {
 //            Masih belum 3 menit
             $value = Cache::get('key');
-            $token = Cache::get('token');
+//            $token = Cache::get($email);
             Mail::to($email)->send(new ForgotEmail($value,$email));
 
             $response=[
                 'status'=>'success',
                 'message'=>'Resend Verification Code',
-                'token'=>$token
 
             ];
         }
         else
         {
+            $token=md5(uniqid(rand(), true));
+            $expiresAt = Carbon::now()->addMinutes(3);
+            Cache::put($token, $token, $expiresAt);
+            Cache::put($email, $email, $expiresAt);
 //            Delete all token data
             DB::table('password_resets')->where('email', $email)->delete();
 //        send email to user
@@ -63,11 +67,10 @@ class ForgotController extends Controller
                 ['email' => $email, 'token' => $code]
             );
 
-            $token=md5(uniqid(rand(), true));
+
 
             $expiresAt = Carbon::now()->addMinutes(3);
-            Cache::put('key', $code, $expiresAt);
-            Cache::put('token', $token, $expiresAt);
+            Cache::put($token, $token, $expiresAt);
             $value = Cache::get('key');
             $response=[
                 'status'=>'success',
@@ -95,39 +98,50 @@ class ForgotController extends Controller
         $code=$request->input('code');
         $user_token=$request->input('token');
 //        Check token
-        $token = Cache::get('token');
 
-        $code_chace = Cache::get('key');
 
-//        Tambahkan waktu 1 menit untuk memasukkan token dalam chace
-        $expiresAt = Carbon::now()->addMinutes(1);
-        Cache::put('token', $token, $expiresAt);
+        if (Cache::has($user_token)) {
+            $token = Cache::get($user_token);
 
-        if($token==$user_token)
-        {
-            if($code==$code_chace)
-            {
+//        Tambahkan waktu 3 menit untuk memasukkan token dalam chace
+            $expiresAt = Carbon::now()->addMinutes(3);
+            Cache::put($user_token, $token, $expiresAt);
+
+            if($kode=$user = DB::table('password_resets')->where('token', $code)->first()){
+//                Jika kode benar-benar ada kirimkan kode ke user
+                $kode=$kode->token;
                 $response=[
                     'status'=>'success',
                     'message'=>'Token dan Kode Diverifikasi',
                     'token'=>$token,
-                    'kode'=>$code_chace
+                    'kode'=>$kode
                 ];
 
+
             }
-            else {
+            else
+            {
                 $response=[
                     'status'=>'error',
                     'message'=>'Kode Verifikasi Salah',
 
                 ];
             }
+
+
+
+
+
+
+
+
+
         }
         else
         {
             $response=[
                 'status'=>'error',
-                'message'=>'Token dan Kode Salah',
+                'message'=>'Token Salah',
 
             ];
         }
@@ -145,49 +159,56 @@ class ForgotController extends Controller
                 'code'=>'required'
             ]);
 
-//        Periksa apakah token baru sama atau tidak
+
 
 
 //        Proses untuk mengubah password lama
         $new_password=$request->input('password');
         $token=$request->input('token');
         $code=$request->input('code');
-//        periksa email yang disimpan di db sesuai dengan nomor code
 
-        $info = DB::table('password_resets')->select('email')->where('token', $code)->first();
+        //        Periksa apakah token baru sama atau tidak
 
-        if($info)
+        if(Cache::has($token))
         {
-            $email=$info->email;
-//        Ubah password data lama
-            $affected = DB::table('users')
-                ->where('email', $email)
-                ->update(['password' => bcrypt($new_password)]);
-//        Hapus data lama dari password reset
-            DB::table('password_resets')->where('email', $email)->delete();
+            //        periksa email yang disimpan di db sesuai dengan nomor code
 
-            if(!$affected)
+            $info = DB::table('password_resets')->select('email')->where('token', $code)->first();
+
+            if($info)
             {
-                $response=[
-                    'status'=>'error',
-                    'message'=>'Gagal Mengubah Password',
-                ];
+                $email=$info->email;
+//        Ubah password data lama
+                $affected = DB::table('users')
+                    ->where('email', $email)
+                    ->update(['password' => bcrypt($new_password)]);
+//        Hapus data lama dari password reset
+                DB::table('password_resets')->where('email', $email)->delete();
+
+                if(!$affected)
+                {
+                    $response=[
+                        'status'=>'error',
+                        'message'=>'Gagal Mengubah Password',
+                    ];
+                }
+                else
+                {
+                    $response=[
+                        'status'=>'success',
+                        'message'=>'Password Berhasil Diubah',
+                    ];
+                }
             }
             else
             {
                 $response=[
-                    'status'=>'success',
-                    'message'=>'Password Berhasil Diubah',
+                    'status'=>'error',
+                    'message'=>'Kode Verifikasi Belum Direquest',
                 ];
             }
         }
-        else
-        {
-            $response=[
-                'status'=>'error',
-                'message'=>'Kode Verifikasi Belum Direquest',
-            ];
-        }
+
 
 
         return $response;
