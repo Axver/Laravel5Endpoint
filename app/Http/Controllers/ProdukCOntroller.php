@@ -295,6 +295,7 @@ public function pembelian(Request $request)
 
 public function uploadbukti(Request $request)
 {
+
     return "Berhasil";
 }
 
