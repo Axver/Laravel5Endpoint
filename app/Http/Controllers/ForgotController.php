@@ -48,6 +48,7 @@ class ForgotController extends Controller
             $response=[
                 'status'=>'success',
                 'message'=>'Resend Verification Code',
+                'token'=>Cache::get($email)
 
             ];
         }
