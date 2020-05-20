@@ -52,24 +52,13 @@ $pNum=1;
 <body>
 <div align="center">
     <input type="hidden" id="name" value="<?php echo $nama?>">
-    <?php
-    $total_pages = 500;
-    ?>
-    <ul class="pagination">
-        <li><a href="viewpdf.php?file=<?php echo $file; ?>&pNum=1">First</a></li>
-        <li class="<?php if($pNum <= 1){ echo "disabled"; } ?>">
-            <a href="<?php if($pNum <= 1){ echo "viewpdf.php?file=<?php echo $file; ?>&pNum=1"; } else { echo "viewpdf.php?file=$file&pNum=".($pNum - 1); } ?>">Prev</a>
-        </li>
-        <li class="<?php if($pNum >= $total_pages){ echo "disabled"; } ?>">
-            <a target="_self" href="<?php if($pNum >= $total_pages){ echo "viewpdf.php?file=<?php echo $file; ?>&pNum=1"; } else { echo "viewpdf.php?file=$file&pNum=".($pNum + 1); } ?>">Next</a>
-        </li>
-        <li><a href="viewpdf.php?file=<?php echo $file; ?>&pNum=<?php echo $total_pages; ?>">Last</a></li>
-    </ul>
-    <?php
-    ?>
+
 
     <br/>
-    <canvas id="the-canvas" style="border:1px  solid black"></canvas>
+    <div id="conx">
+   
+    </div>
+
 </div>
 
 <script src="http://blogchem.com/kasmui/dokumen/build/pdf.js"></script>
@@ -82,22 +71,66 @@ $pNum=1;
 
     var loadingTask = pdfjsLib.getDocument(url);
     loadingTask.promise.then(function(pdf) {
+        // console.log(page);
+        var numPages = pdf.numPages;
+        console.log(numPages);
+        //Generate auto canvas
+        let i=0;
+        while(i<numPages)
+        {
+            //Create new element
+            let canvas = document.createElement('canvas');
 
-        pdf.getPage(<?php echo $pNum; ?>).then(function(page) {
-            var scale = 1.5;
-            var viewport = page.getViewport({ scale: scale, });
+                div = document.getElementById('conx');
+            $(canvas).attr('id', i+"a");
+            canvas=div.appendChild(canvas);
+            console.log(canvas);
 
-            var canvas = document.getElementById('the-canvas');
-            var context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+            pdf.getPage(i).then(function(page) {
+                var scale = 1.5;
+                var viewport = page.getViewport({ scale: scale, });
+                let hm="";
 
-            var renderContext = {
-                canvasContext: context,
-                viewport: viewport,
-            };
-            page.render(renderContext);
-        });
+                console.log(hm.concat(i,'a'));
+                let mj=hm.concat(i,'a');
+                var canvas1 = canvas;
+                console.log(canvas1)
+                var context = canvas1.getContext('2d');
+                canvas1.height = viewport.height;
+                canvas1.width = viewport.width;
+
+                var renderContext = {
+                    canvasContext: context,
+                    viewport: viewport,
+                };
+                page.render(renderContext);
+
+
+            });
+
+
+
+
+            i++;
+        }
+
+
+        let j=0;
+        while(j<numPages)
+        {
+
+
+
+            j++;
+        }
+
+
+
+
+
+
+
+
     });
 </script>
 </body>
