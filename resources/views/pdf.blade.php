@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=.5, maximum-scale=12.0, minimum-scale=.25, user-scalable=yes"/>
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
@@ -20,7 +19,8 @@
         <div id="pager">
             <button data-pager="prev">prev</button>
             <button data-pager="next">next</button>
-
+            <button id="zoominbutton" type="button">zoom in</button>
+            <button id="zoomoutbutton" type="button">zoom out</button>
         </div>
         <div id="page-mode">
             <label>Page Mode <input type="number" value="1" min="1"/></label>
@@ -119,7 +119,7 @@
         }
 
         function renderPage(page) {
-            pdfViewport = page.getViewport(1);
+            pdfViewport = page.getViewport(x);
 
             const container =
                 viewport.children[page.pageIndex - cursorIndex * pageMode];
@@ -136,7 +136,17 @@
 
         }
 
+        var zoominbutton = document.getElementById("zoominbutton");
+        zoominbutton.onclick = function() {
+            initPDFViewer(name);
+            x=x-0.25;
+        }
 
+        var zoomoutbutton = document.getElementById("zoomoutbutton");
+        zoomoutbutton.onclick = function() {
+            initPDFViewer(name);
+            x=x+0.25;
+        }
     })();
 
     let name=document.getElementById('nama').value;
