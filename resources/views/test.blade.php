@@ -1,5 +1,5 @@
 <?php
-$file=$nama;
+$file="3_sifat_orang_bertaqwa.pdf";
 $pNum=1;
 ?>
         <!DOCTYPE html>
@@ -51,7 +51,6 @@ $pNum=1;
 </head>
 <body>
 <div align="center">
-    <input type="hidden" id="name" value="<?php echo $nama?>">
     <?php
     $total_pages = 500;
     ?>
