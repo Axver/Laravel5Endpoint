@@ -48,6 +48,12 @@ $pNum=1;
 
         // -->
     </script>
+
+    <style>
+        .num{
+            font-size: 30px;
+        }
+    </style>
 </head>
 <body>
 <div align="center">
@@ -56,7 +62,7 @@ $pNum=1;
 
     <br/>
     <div id="conx">
-   
+
     </div>
 
 </div>
@@ -80,10 +86,19 @@ $pNum=1;
         {
             //Create new element
             let canvas = document.createElement('canvas');
+            let divx=document.createElement('div');
 
                 div = document.getElementById('conx');
+
             $(canvas).attr('id', i+"a");
+            $(divx).attr('id', i+"b");
+            $(divx).attr('class', "num");
+
             canvas=div.appendChild(canvas);
+            divx=div.appendChild(divx);
+
+
+
             console.log(canvas);
 
             pdf.getPage(i).then(function(page) {
@@ -108,6 +123,8 @@ $pNum=1;
 
             });
 
+            console.log($("#"+i+"b")[0].innerText=i+1);
+
 
 
 
@@ -115,14 +132,6 @@ $pNum=1;
         }
 
 
-        let j=0;
-        while(j<numPages)
-        {
-
-
-
-            j++;
-        }
 
 
 
