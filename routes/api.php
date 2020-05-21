@@ -61,6 +61,18 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProdukCOntroller@verifikasi'
         ]);
+    Route::post('/modul/add',
+        [
+            'uses'=>'ModulController@add'
+        ]);
+    Route::post('/modul/byproduk',
+        [
+            'uses'=>'ModulController@produkmodul'
+        ]);
+    Route::post('/modul/video',
+        [
+            'uses'=>'ModulController@videomodul'
+        ]);
 
 
 
