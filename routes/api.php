@@ -77,6 +77,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'QuizController@quiz'
         ]);
+    Route::post('/quiz/answer',
+        [
+            'uses'=>'QuizController@answer'
+        ]);
 
 
 
