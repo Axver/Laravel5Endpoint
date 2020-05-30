@@ -65,13 +65,17 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ModulController@add'
         ]);
-    Route::post('/modul/byproduk',
+    Route::get('/modul/byproduk',
         [
             'uses'=>'ModulController@produkmodul'
         ]);
-    Route::post('/modul/video',
+    Route::get('/modul/video',
         [
             'uses'=>'ModulController@videomodul'
+        ]);
+    Route::get('/quiz/getquiz',
+        [
+            'uses'=>'QuizController@quiz'
         ]);
 
 
