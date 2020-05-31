@@ -81,7 +81,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'QuizController@answer'
         ]);
-
+    Route::post('/image/upload',
+        [
+            'uses'=>'FileController@upload'
+        ]);
 
 
 
