@@ -65,6 +65,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProdukCOntroller@verifikasi'
         ]);
+    Route::post('/produk/uploadbukti',
+        [
+            'uses'=>'ProdukCOntroller@uploadbukti'
+        ]);
     Route::post('/modul/add',
         [
             'uses'=>'ModulController@add'

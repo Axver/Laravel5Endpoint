@@ -50,8 +50,10 @@ public function produkbytraining(Request $request)
     if(!$produk)
     {
         $response=[
-            'status'=>'failed'
+            'status'=>'failed',
+            'msg'=>'failed to get data'
         ];
+        return response()->json($response,404);
     }
     else
     {
@@ -61,8 +63,9 @@ public function produkbytraining(Request $request)
             'data'=>$produk
 
         ];
+        return response()->json($response,200);
     }
-    return $response;
+
 }
 
 //Menampilkan Paket By Training
@@ -79,8 +82,11 @@ public function paketbytraining(Request $request)
     if(!$paket)
     {
         $response=[
-            'status'=>'failed'
+            'status'=>'failed',
+            'mdg'=>'failed to get datas'
         ];
+
+        return response()->json($response,404);
     }
     else
     {
@@ -90,8 +96,10 @@ public function paketbytraining(Request $request)
             'data'=>$paket
 
         ];
+
+        return response()->json($response,200);
     }
-    return $response;
+
 }
 
 //Pembelian Produk
@@ -125,7 +133,7 @@ public function pembelian(Request $request)
             );
 
             $expiresAt = Carbon::now()->addMinutes(1500);
-            Cache::put('bataspembayaran', $uuid, $expiresAt);
+            Cache::put($uuid.'_', 'produk', $expiresAt);
             Cache::put($uuid, $uuid, $expiresAt);
 
             if(!$insert)
@@ -184,8 +192,8 @@ public function pembelian(Request $request)
                         );
 //                        Redis 25 jam expired
                         $expiresAt = Carbon::now()->addMinutes(1500);
-                        Cache::put('bataspembayaran', $uuid, $expiresAt);
-//                        Cache::put($uuid, $uuid, $expiresAt);
+                        Cache::put($uuid.'_', 'paket', $expiresAt);
+                        Cache::put($uuid, $uuid, $expiresAt);
 
 
                         $i=0;
@@ -295,8 +303,105 @@ public function pembelian(Request $request)
 
 public function uploadbukti(Request $request)
 {
+    $this->validate($request,
+        [
+            'id_pembelian'=>'required',
+            'token'=>'required',
 
-    return "Berhasil";
+        ]);
+
+    $id_pembelian=$request->input('id_pembelian');
+    $jenis_produk=$request->input('token');
+
+//    Cek apakah pembelian masih ada
+    if (Cache::has($id_pembelian.'_')) {
+        $value = Cache::get($id_pembelian.'_');
+
+        if($value=='produk')
+        {
+//            Upload Bukti Untuk Produk
+            $now=Carbon::now();
+            $md5Name = md5_file($request->file('image')->getRealPath());
+            $md5Name=$md5Name.md5($now);
+            $md5Name=md5($md5Name);
+            $guessExtension = $request->file('image')->guessExtension();
+            $extension = $request->file('image')->extension();
+            $path=$request->file('image')->move(public_path('/upload'),$md5Name.'.'.$guessExtension);
+            $photoUrl=url('/upload',$md5Name.'.'.$extension);
+
+//            Update Gambaar Di Database
+            $uuid=Uuid::generate()->string;
+            $update = DB::table('pembelian_produk')
+                ->where('id_pembelian', $id_pembelian)
+                ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
+
+            if($update)
+            {
+                return response()->json(
+                    [
+                        'status'=>'success',
+                        'msg'=>'Berhasil Menambahkan Gambar',
+                        'url'=>$photoUrl,
+                        'name'=>$md5Name.'.'.$extension,
+                        'id'=>$uuid
+                    ], 201
+                );
+            }
+            else
+            {
+                return response()->json(
+                    [
+                        'status'=>'failed',
+                        'msg'=>'Gagal Menambahkan Gambar'
+                    ], 404
+                );
+            }
+            return $photoUrl ;
+        }
+        else
+        {
+//            Upload Bukti Untuk Produk
+            $now=Carbon::now();
+            $md5Name = md5_file($request->file('image')->getRealPath());
+            $md5Name=$md5Name.md5($now);
+            $md5Name=md5($md5Name);
+            $guessExtension = $request->file('image')->guessExtension();
+            $extension = $request->file('image')->extension();
+            $path=$request->file('image')->move(public_path('/upload'),$md5Name.'.'.$guessExtension);
+            $photoUrl=url('/upload',$md5Name.'.'.$extension);
+
+//            Update Gambaar Di Database
+            $uuid=Uuid::generate()->string;
+            $update = DB::table('pembelian_paket')
+                ->where('id_pembelian', $id_pembelian)
+                ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
+
+            if($update)
+            {
+                return response()->json(
+                    [
+                        'status'=>'success',
+                        'msg'=>'Berhasil Menambahkan Gambar',
+                        'url'=>$photoUrl,
+                        'name'=>$md5Name.'.'.$extension,
+                        'id'=>$uuid
+                    ], 201
+                );
+            }
+            else
+            {
+                return response()->json(
+                    [
+                        'status'=>'failed',
+                        'msg'=>'Gagal Menambahkan Gambar'
+                    ], 404
+                );
+            }
+            return $photoUrl ;
+        }
+    }
+
+
 }
 
 public function verifikasi(Request $request)
@@ -363,14 +468,15 @@ public function verifikasi(Request $request)
                    ->first();
                 Mail::to($datauser->email)->send(new ListUser($list_user,$datauser->email));
             }
-
+            Cache::forget($id_pembelian);
+            Cache::forget($id_pembelian.'_');
             return $var;
         }
         else
         {
            return $response=[
                 'status'=>'failed',
-                'message'=>'Waktu Verifikasi Sudah Expired'
+                'message'=>'Waktu Verifikasi Sudah Expired Atau Pembelian Sudah Di Verifikasi'
             ];
         }
 
@@ -378,7 +484,7 @@ public function verifikasi(Request $request)
     else
     {
 //        Update pada pembelian produk
-        if (Cache::has($id_pembelian)) {
+        if (Cache::has($id_pembelian.'_')) {
             $var=DB::transaction(function() use ($id_pembelian){
 //              Update tabel pembelian_produk
                 $affected = DB::table('pembelian_produk')
@@ -404,17 +510,20 @@ public function verifikasi(Request $request)
                 Mail::to($datauser->email)->send(new Verifikasi());
             }
 
+            Cache::forget($id_pembelian);
+            Cache::forget($id_pembelian.'_');
             return $var;
         }
         else
         {
            return $response=[
                 'status'=>'failed',
-                'message'=>'Waktu Verifikasi Sudah Expired'
+                'message'=>'Waktu Verifikasi Sudah Expired Atau Pembelian Sudah Di Verifikasi'
             ];
         }
     }
 
+//            Remove Redis
 
 }
 
