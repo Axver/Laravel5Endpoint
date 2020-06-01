@@ -32,7 +32,9 @@ class FileController extends Controller
                 [
                     'status'=>'success',
                     'msg'=>'Berhasil Menambahkan Gambar',
-                    'url'=>$photoUrl
+                    'url'=>$photoUrl,
+                    'name'=>$md5Name.'.'.$extension,
+                    'id'=>$uuid
                 ], 201
             );
         }

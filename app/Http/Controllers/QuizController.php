@@ -19,8 +19,10 @@ class QuizController extends Controller
             ]);
         $id_modul=$request->input('id_modul');
         $query = DB::table('question')
-            ->select('id','question.id_modul','question','option','expiration')
+            ->select('question.id','question.id_modul','question','option','expiration','image.name')
             ->join('quiz', 'question.id_modul', '=', 'quiz.id_modul')
+            ->leftJoin('question_image','question.id','question_image.id')
+            ->leftJoin('image','question_image.image','image.image')
             ->where('question.id_modul', $id_modul)
             ->get();
 
@@ -40,6 +42,12 @@ class QuizController extends Controller
         {
             $expiration=$data->expiration;
             $id_modul_get=$data->id_modul;
+            if($data->name!=null)
+            {
+                $base_url=url('/').'/upload/'.$data->name;
+                $data->name=$base_url;cmddd
+            }
+
         }
 
 
