@@ -153,4 +153,70 @@ class AuthController extends Controller
         return response()->json($response,404);
     }
 
+    public function logout(Request $request)
+    {
+        $this->validate($request,
+            [
+                'token'=>'required',
+
+            ]);
+        $token=$request->input('token');
+        $var=DB::transaction(function() use ($token){
+//            Periksa apakah token da didalam database
+            $users = DB::table('users')->select('remember_token')->where('remember_token',$token)->first();
+            if($users)
+            {
+                $get_token=$users->remember_token;
+                if($get_token==$token)
+                {
+//                Remove token from database
+                    $affected = DB::table('users')
+                        ->where('remember_token', $token)
+                        ->update(['remember_token' => null]);
+
+                    if($affected)
+                    {
+                        $response=[
+                            'status'=>'success',
+                            'msg'=>'user logout'
+                        ];
+                        return response()->json($response,200);
+
+                    }
+                    else
+                    {
+                        $response=[
+                            'status'=>'failed',
+                            'msg'=>'failed to change login status'
+                        ];
+                        return response()->json($response,404);
+                    }
+                }
+                else
+                {
+                    $response=[
+                        'status'=>'failed',
+                        'msg'=>'user already logout'
+                    ];
+                    return response()->json($response,404);
+                }
+            }
+            else
+            {
+                $response=[
+                    'status'=>'failed',
+                    'msg'=>'user already logout'
+                ];
+                return response()->json($response,404);
+            }
+
+
+        });
+
+
+       return $var;
+
+
+    }
+
 }

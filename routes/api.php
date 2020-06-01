@@ -14,6 +14,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'AuthController@signin'
         ]);
+    Route::post('/user/logout',
+        [
+            'uses'=>'AuthController@logout'
+        ]);
 
     Route::get('/user/profile',
         [

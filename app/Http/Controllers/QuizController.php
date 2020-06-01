@@ -45,7 +45,7 @@ class QuizController extends Controller
             if($data->name!=null)
             {
                 $base_url=url('/').'/upload/'.$data->name;
-                $data->name=$base_url;cmddd
+                $data->name=$base_url;
             }
 
         }
@@ -127,6 +127,7 @@ class QuizController extends Controller
 
             if($insert)
             {
+                Cache::forget($session_id);
                 return response()->json(
                     [
                         'status'=>'success',
