@@ -18,7 +18,9 @@ class ProdukCOntroller extends Controller
 //    Mengirimkan semua data pelatihan yang ada
     public function listtraining(Request $request)
     {
-        $training = DB::table('training')->select('id', 'nama_training','deskripsi','foto')->get();
+        $training = DB::table('training')->select('training.id', 'nama_training','deskripsi','thumbnail','image.name')
+            ->leftJoin('image_triaining','training.id','image_triaining.id')
+            ->leftJoin('image','image_triaining.image','image.image')->get();
         if(!$training)
         {
             $response=[
@@ -27,6 +29,16 @@ class ProdukCOntroller extends Controller
         }
         else
         {
+            foreach ($training as $key=>$data)
+            {
+
+                if($data->name!=null)
+                {
+                    $base_url=url('/').'/upload/'.$data->name;
+                    $data->name=$base_url;
+                }
+
+            }
             $response=[
                 'status'=>'success',
                 'data'=>$training
@@ -45,7 +57,9 @@ public function produkbytraining(Request $request)
         ]);
     $training_id=$request->input('training_id');
 
-    $produk = DB::table('produk')->select('id', 'training_id','nama_produk','deskripsi_produk','foto','harga','zoom')
+    $produk = DB::table('topik')->select('topik.id', 'training_id','nama_topik','deskripsi_topik','thumbnail','harga','zoom','image.name')
+        ->leftJoin('image_produk','topik.id','image_produk.id')
+        ->leftJoin('image','image_produk.image','image.image')
         ->where('training_id',$training_id)->get();
     if(!$produk)
     {
@@ -57,6 +71,16 @@ public function produkbytraining(Request $request)
     }
     else
     {
+        foreach ($produk as $key=>$data)
+        {
+
+            if($data->name!=null)
+            {
+                $base_url=url('/').'/upload/'.$data->name;
+                $data->name=$base_url;
+            }
+
+        }
         $response=[
             'status'=>'success',
             'jenis'=>'produk',
@@ -77,7 +101,9 @@ public function paketbytraining(Request $request)
         ]);
     $training_id=$request->input('training_id');
 
-    $paket = DB::table('paket')->select('id', 'training_id','nama_paket','deskripsi','harga','zoom','max_user')
+    $paket = DB::table('paket')->select('paket.id', 'training_id','nama_paket','deskripsi','harga','zoom','max_user','image.name')
+        ->leftJoin('image_paket','paket.id','image_paket.id')
+        ->leftJoin('image','image_paket.image','image.image')
         ->where('training_id',$training_id)->get();
     if(!$paket)
     {
@@ -90,6 +116,16 @@ public function paketbytraining(Request $request)
     }
     else
     {
+        foreach ($paket as $key=>$data)
+        {
+
+            if($data->name!=null)
+            {
+                $base_url=url('/').'/upload/'.$data->name;
+                $data->name=$base_url;
+            }
+
+        }
         $response=[
             'status'=>'success',
             'jenis'=>'paket',
@@ -145,11 +181,28 @@ public function pembelian(Request $request)
             }
             else
             {
+
                 $data = DB::table('pembelian_produk')
-                    ->select('id_pembelian','status_pembayaran','bukti_pembayaran','nama_produk','deskripsi_produk','foto','harga','zoom')
-                    ->join('produk', 'pembelian_produk.id_produk', '=', 'produk.id')
+                    ->select('id_pembelian','status_pembayaran','bukti_pembayaran','nama_topik','deskripsi_topik','thumbnail','harga','zoom','image.name')
+                    ->join('topik', 'pembelian_produk.id_produk', '=', 'topik.id')
+                    ->leftJoin('image_produk','topik.id','image_produk.id')
+                    ->leftJoin('image','image_produk.image','image.image')
                     ->where('pembelian_produk.id_pembelian', $uuid)
                     ->get();
+
+                if($data)
+                {
+                    foreach ($data as $key=>$data)
+                    {
+
+                        if($data->name!=null)
+                        {
+                            $base_url=url('/').'/upload/'.$data->name;
+                            $data->name=$base_url;
+                        }
+
+                    }
+                }
                 $response=[
                     'status'=>'success',
                     'jenis'=>'produk',
@@ -216,13 +269,29 @@ public function pembelian(Request $request)
                                 }
                                 else
                                 {
-                                    $account_generated[$i]=$email_g.'|'.'Password:'.$password;
+                                    if($akun=='')
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        $account_generated[$i]=$email_g.'|'.'Password:'.$password;
+                                    }
+
+                                }
+
+                                if($email_g==''){
+
+                                }
+                                else
+                                {
+                                    DB::table('users')->insert(
+                                        ['name' => $name_g, 'email' => $email_g,'password'=>$password_crypt,'created_at'=>Carbon::now(),'updated_at'=>Carbon::now()]
+                                    );
                                 }
 
 //                                    Insert saja
-                                DB::table('users')->insert(
-                                    ['name' => $name_g, 'email' => $email_g,'password'=>$password_crypt,'created_at'=>Carbon::now(),'updated_at'=>Carbon::now()]
-                                );
+
 
                             }
                             catch (\PDOException $e)
@@ -524,6 +593,12 @@ public function verifikasi(Request $request)
     }
 
 //            Remove Redis
+
+}
+
+
+public function topikfrompaket(Request $request)
+{
 
 }
 
