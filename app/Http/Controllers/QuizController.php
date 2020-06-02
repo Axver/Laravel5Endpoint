@@ -14,16 +14,16 @@ class QuizController extends Controller
     {
         $this->validate($request,
             [
-                'id_modul'=>'required',
+                'id_topik'=>'required',
 
             ]);
-        $id_modul=$request->input('id_modul');
+        $id_topik=$request->input('id_topik');
         $query = DB::table('question')
-            ->select('question.id','question.id_modul','question','option','expiration','image.name')
-            ->join('quiz', 'question.id_modul', '=', 'quiz.id_modul')
+            ->select('question.id','question.quiz_id','question','option','expiration','image.name')
+            ->join('quiz', 'question.quiz_id', '=', 'quiz.id')
             ->leftJoin('question_image','question.id','question_image.id')
             ->leftJoin('image','question_image.image','image.image')
-            ->where('question.id_modul', $id_modul)
+            ->where('question.quiz_id', $id_topik)
             ->get();
 
         if($query->isEmpty())
@@ -41,7 +41,7 @@ class QuizController extends Controller
         foreach ($query as $key=>$data)
         {
             $expiration=$data->expiration;
-            $id_modul_get=$data->id_modul;
+            $id_modul_get=$data->quiz_id;
             if($data->name!=null)
             {
                 $base_url=url('/').'/upload/'.$data->name;
@@ -62,7 +62,7 @@ class QuizController extends Controller
 //        Ambil semua pertanyaanya
         $response=[
           'quizSession'=>$uuid,
-            'id_modul'=>$id_modul_get,
+            'id_topik'=>$id_modul_get,
             'question'=>$query
         ];
         return $response;
@@ -75,12 +75,12 @@ class QuizController extends Controller
                 'session_id'=>'required',
                 'answer'=>'required',
                 'user_id'=>'required',
-                'id_modul'=>'required'
+                'id_topik'=>'required'
             ]);
         $session_id=$request->input('session_id');
         $answer=$request->input('answer');
         $user_id=$request->input('user_id');
-        $id_modul=$request->input('id_modul');
+        $id_topik=$request->input('id_topik');
 
 //        Cek apakah session_id masih ada atau tidak
         if (Cache::has($session_id)) {
@@ -122,7 +122,7 @@ class QuizController extends Controller
 //            Ambil data dari Redis
             $time = Cache::get($session_id);
             $insert=DB::table('quiz_session')->insert(
-                ['id_session' => $session_id,'starting_time'=>$time,'id_modul'=>$id_modul,'id'=>$user_id,'wrong_count'=>$wrong,'correct_count'=>$correct,'score'=>$final_point]
+                ['id_session' => $session_id,'starting_time'=>$time,'quiz_id'=>$id_topik,'id'=>$user_id,'wrong_count'=>$wrong,'correct_count'=>$correct,'score'=>$final_point]
             );
 
             if($insert)
