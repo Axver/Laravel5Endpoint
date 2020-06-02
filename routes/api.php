@@ -57,6 +57,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProdukCOntroller@paketbytraining'
         ]);
+    Route::get('/produk/topikperpaket',
+        [
+            'uses'=>'ProdukCOntroller@topikfrompaket'
+        ]);
     Route::post('/produk/pembelian',
         [
             'uses'=>'ProdukCOntroller@pembelian'
@@ -93,6 +97,23 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'FileController@upload'
         ]);
+    Route::post('/pdf/upload',
+        [
+            'uses'=>'PdfController@uploadexlusive'
+        ]);
+    Route::post('/pdf/listbymodul',
+        [
+            'uses'=>'PdfController@modul_exlusive'
+        ]);
+    Route::post('/pdf/uploadble',
+        [
+            'uses'=>'PdfController@uploaddownloadble'
+        ]);
+    Route::post('/pdf/downbymodul',
+        [
+            'uses'=>'PdfController@downbymodul'
+        ]);
+
 
 
 

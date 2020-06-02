@@ -47,6 +47,6 @@ class FileController extends Controller
                 ], 404
             );
         }
-        return $photoUrl ;
+        return $photoUrl;
     }
 }

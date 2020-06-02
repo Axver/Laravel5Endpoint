@@ -599,6 +599,52 @@ public function verifikasi(Request $request)
 
 public function topikfrompaket(Request $request)
 {
+    $this->validate($request,
+        [
+            'id_topik'=>'required',
+        ]);
+    $id_topik=$request->input('id_topik');
+//    Select Data
+    $topik = DB::table('paket_topik')->select('topik.id', 'nama_topik','deskripsi_topik','thumbnail','harga','image.name')
+        ->leftJoin('topik','paket_topik.id','topik.id')
+        ->leftJoin('image_produk','topik.id','image_produk.id')
+        ->leftJoin('image','image_produk.image','image.image')
+        ->where('paket_topik.paket_id',$id_topik)->get();
+
+    if($topik)
+    {
+        foreach ($topik as $key=>$data)
+        {
+
+            if($data->name!=null)
+            {
+                $base_url=url('/').'/upload/'.$data->name;
+                $data->name=$base_url;
+            }
+
+        }
+        $response=[
+            'status'=>'success',
+            'data'=>$topik
+        ];
+
+        return response()->json(
+            $response, 404
+        );
+    }
+    else
+    {
+        $response=[
+            'status'=>'failed',
+            'msg'=>'Failed to get topik data'
+        ];
+
+        return response()->json(
+           $response, 404
+        );
+    }
+
+
 
 }
 
