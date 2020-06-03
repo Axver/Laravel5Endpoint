@@ -70,9 +70,13 @@ class AuthController extends Controller
                'params'=>'email,password'
            ];
            $response=[
-               'msg'=>'User Created',
-               'user'=>$user,
-               'token'=>$token
+               'code'=>0,
+               'status'=>'success',
+               'data'=>[
+                   'user'=>$user,
+                   'token'=>$token
+               ]
+
            ];
 
 
@@ -116,7 +120,11 @@ class AuthController extends Controller
                 {
                     return response()->json(
                         [
-                            'msg'=>'Email atau Password Salah'
+                            'data'=>null,
+                            'error'=>[
+                                'code'=>1,
+                                'msg'=>'Failed Generate Tokens',
+                            ]
                         ], 404
                     );
                 }
@@ -125,15 +133,23 @@ class AuthController extends Controller
             {
                 return response()->json(
                     [
-                        'msg'=>'Failed To Create Token'
-                    ], 400
+                        'data'=>null,
+                        'error'=>[
+                            'code'=>1,
+                            'msg'=>'Failed Generate Tokens',
+                        ]
+                    ], 404
                 );
             }
 
             $response=[
-              'msg'=>'User Sign',
-                'user'=>$user,
-                'token'=>$token
+                'code'=>0,
+              'status'=>'success',
+                'data'=>[
+                    'user'=>$user,
+                    'token'=>$token
+                ]
+
             ];
 
 //            Update Remember token pada tabel user
@@ -144,11 +160,20 @@ class AuthController extends Controller
             return response()->json($response,201);
 
         }
+        else
+        {
+            return response()->json(
+                [
+                    'data'=>null,
+                    'error'=>[
+                        'code'=>2,
+                        'msg'=>'Username Or Pssword Not Matchs',
+                    ]
+                ], 404
+            );
+        }
 
-        $response=[
-            'msg'=>'Error'
 
-        ];
 
         return response()->json($response,404);
     }
@@ -178,7 +203,12 @@ class AuthController extends Controller
                     {
                         $response=[
                             'status'=>'success',
-                            'msg'=>'user logout'
+                            'data'=>[
+                                'code'=>0,
+                                'msg'=>'user logout'
+
+                            ]
+
                         ];
                         return response()->json($response,200);
 
@@ -186,8 +216,11 @@ class AuthController extends Controller
                     else
                     {
                         $response=[
-                            'status'=>'failed',
-                            'msg'=>'failed to change login status'
+                            'data'=>null,
+                            'errors'=>[
+                                'code'=>1,
+                                'msg'=>'Failed To Change Login Status'
+                            ]
                         ];
                         return response()->json($response,404);
                     }
@@ -195,8 +228,12 @@ class AuthController extends Controller
                 else
                 {
                     $response=[
-                        'status'=>'failed',
-                        'msg'=>'user already logout'
+                        'data'=>null,
+                        'errors'=>[
+                          'code'=>2,
+                            'msg'=>'user already logout'
+                        ],
+
                     ];
                     return response()->json($response,404);
                 }
@@ -204,8 +241,12 @@ class AuthController extends Controller
             else
             {
                 $response=[
-                    'status'=>'failed',
-                    'msg'=>'user already logout'
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>2,
+                        'msg'=>'user already logout'
+                    ],
+
                 ];
                 return response()->json($response,404);
             }

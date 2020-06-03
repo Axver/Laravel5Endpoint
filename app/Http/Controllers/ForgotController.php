@@ -34,30 +34,47 @@ class ForgotController extends Controller
         {
             return response()->json(
                 [
-                    'msg'=>'Email Tidak Terdaftar'
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>1,
+                        'msg'=>'Email not registered yet'
+
+                    ]
+
                 ], 400
             );
         }
 
         if (Cache::has($email)) {
 //            Masih belum 3 menit
-            $value = Cache::get('key');
+            $data_e=Cache::get($email);
+            $value = DB::table('password_resets')->select('email', 'token')
+                ->where('email',$data_e)->first();
+            $value=$value->token;
 //            $token = Cache::get($email);
             Mail::to($email)->send(new ForgotEmail($value,$email));
 
-            $response=[
-                'status'=>'success',
-                'message'=>'Resend Verification Code',
-                'token'=>Cache::get($email)
+            return response()->json(
+                [
+                    'status'=>'success',
+                    'data'=>[
+                            'code'=>0,
+                            'token'=>Cache::get($email.'_'),
+                            'msg'=>'Resend Verification Code',
+                    ]
 
-            ];
+                ], 200
+            );
+
         }
         else
         {
             $token=md5(uniqid(rand(), true));
-            $expiresAt = Carbon::now()->addMinutes(3);
+            $expiresAt = Carbon::now()->addMinutes(5);
             Cache::put($token, $token, $expiresAt);
             Cache::put($email, $email, $expiresAt);
+            Cache::put($email.'_', $token, $expiresAt);
+            Cache::put($token.'_', $email, $expiresAt);
 //            Delete all token data
             DB::table('password_resets')->where('email', $email)->delete();
 //        send email to user
@@ -70,19 +87,28 @@ class ForgotController extends Controller
 
 
 
-            $expiresAt = Carbon::now()->addMinutes(3);
+            $expiresAt = Carbon::now()->addMinutes(5);
             Cache::put($token, $token, $expiresAt);
             $value = Cache::get('key');
-            $response=[
-                'status'=>'success',
-                'message'=>'Adding New Verification Code',
-                'token'=>$token
-            ];
+
+            return response()->json(
+                [
+                    'status'=>'success',
+                    'data'=>[
+                        'code'=>0,
+                        'token'=>$token,
+                        'msg'=>'Verification Code Has Been Send',
+                    ]
+
+                ], 200
+            );
+
+
 
         }
 
 
-        return $response;
+
 
     }
 
@@ -105,49 +131,74 @@ class ForgotController extends Controller
             $token = Cache::get($user_token);
 
 //        Tambahkan waktu 3 menit untuk memasukkan token dalam chace
-            $expiresAt = Carbon::now()->addMinutes(3);
+            $expiresAt = Carbon::now()->addMinutes(5);
             Cache::put($user_token, $token, $expiresAt);
 
             if($kode=$user = DB::table('password_resets')->where('token', $code)->first()){
 //                Jika kode benar-benar ada kirimkan kode ke user
-                $kode=$kode->token;
-                $response=[
-                    'status'=>'success',
-                    'message'=>'Token dan Kode Diverifikasi',
-                    'token'=>$token,
-                    'kode'=>$kode
-                ];
+//                Forget Redis
+                Cache::forget($user_token);
+                $email=$value = Cache::get($user_token.'_');
+                Cache::forget($user_token.'_');
+                Cache::forget($email);
+                Cache::forget($email.'_');
+
+                $token=md5(uniqid(rand(), true));
+
+//                Create New Token
+                $expiresAt = Carbon::now()->addMinutes(5);
+                Cache::put($token, $code, $expiresAt);
+
+//                $kode=$kode->token;
+
+                return response()->json(
+                    [
+                        'status'=>'success',
+                        'data'=>[
+                            'code'=>0,
+                            'new_token'=>$token,
+                            'msg'=>'Token and code verified',
+                        ]
+
+                    ], 200
+                );
 
 
             }
             else
             {
-                $response=[
-                    'status'=>'error',
-                    'message'=>'Kode Verifikasi Salah',
+                return response()->json(
+                    [
+                        'data'=>null,
+                        'errors'=>[
+                            'code'=>1,
+                            'msg'=>'Wrong Verification Code',
+                        ]
 
-                ];
+                    ], 404
+                );
+
             }
-
-
-
-
-
-
-
-
 
         }
         else
         {
-            $response=[
-                'status'=>'error',
-                'message'=>'Token Salah',
+            return response()->json(
+                [
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>2,
+                        'msg'=>'Wrong Token Code',
+                    ]
 
-            ];
+                ], 404
+            );
+
+
+
         }
 
-        return $response;
+
 
     }
 
@@ -157,7 +208,6 @@ class ForgotController extends Controller
             [
                 'password'=>'required',
                 'token'=>'required',
-                'code'=>'required'
             ]);
 
 
@@ -166,7 +216,7 @@ class ForgotController extends Controller
 //        Proses untuk mengubah password lama
         $new_password=$request->input('password');
         $token=$request->input('token');
-        $code=$request->input('code');
+        $code=Cache::get($token);
 
         //        Periksa apakah token baru sama atau tidak
 
@@ -188,26 +238,60 @@ class ForgotController extends Controller
 
                 if(!$affected)
                 {
-                    $response=[
-                        'status'=>'error',
-                        'message'=>'Gagal Mengubah Password',
-                    ];
+                    return response()->json(
+                        [
+                            'data'=>null,
+                            'errors'=>[
+                                'code'=>1,
+                                'msg'=>'Filed To Update Database',
+                            ]
+
+                        ], 404
+                    );
+
                 }
                 else
                 {
-                    $response=[
-                        'status'=>'success',
-                        'message'=>'Password Berhasil Diubah',
-                    ];
+                    return response()->json(
+                        [
+                            'status'=>'success',
+                            'data'=>[
+                                'code'=>0,
+                                'msg'=>'Password Updated',
+                            ]
+
+                        ], 201
+                    );
+
                 }
+                Cache::forget($token);
             }
             else
             {
-                $response=[
-                    'status'=>'error',
-                    'message'=>'Kode Verifikasi Belum Direquest',
-                ];
+                return response()->json(
+                    [
+                        'data'=>null,
+                        'errors'=>[
+                            'code'=>2,
+                            'msg'=>'Verification Code Not Found In Database',
+                        ]
+
+                    ], 404
+                );
             }
+        }
+        else
+        {
+            return response()->json(
+                [
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>3,
+                        'msg'=>'Token Not Match',
+                    ]
+
+                ], 404
+            );
         }
 
 

@@ -409,10 +409,14 @@ public function uploadbukti(Request $request)
                 return response()->json(
                     [
                         'status'=>'success',
-                        'msg'=>'Berhasil Menambahkan Gambar',
-                        'url'=>$photoUrl,
-                        'name'=>$md5Name.'.'.$extension,
-                        'id'=>$uuid
+                        'data'=>[
+                            'code'=>0,
+                            'msg'=>'Image Upload Sucessfully',
+                            'url'=>$photoUrl,
+                            'name'=>$md5Name.'.'.$extension,
+                            'id_image'=>$uuid
+                        ]
+
                     ], 201
                 );
             }
@@ -468,6 +472,18 @@ public function uploadbukti(Request $request)
             }
             return $photoUrl ;
         }
+    }
+    else
+    {
+        return response()->json(
+            [
+                'data'=>null,
+                'errors'=>[
+                    'code'=>1,
+                    'msg'=>'id_pembelian not match of any data'
+                ]
+            ], 404
+        );
     }
 
 
