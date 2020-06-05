@@ -30,8 +30,11 @@ class QuizController extends Controller
         {
             return response()->json(
                 [
-                    'status'=>'failed',
-                    'msg'=>'Pertanyaan Tidak Ada',
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>1,
+                        'msg'=>'Pertanyaan tidak ada'
+                    ],
                 ], 404
             );
         }
@@ -121,32 +124,95 @@ class QuizController extends Controller
 //            Selanjutnya simpan hasilnya didatabase
 //            Ambil data dari Redis
             $time = Cache::get($session_id);
-            $insert=DB::table('quiz_session')->insert(
-                ['id_session' => $session_id,'starting_time'=>$time,'quiz_id'=>$id_topik,'id'=>$user_id,'wrong_count'=>$wrong,'correct_count'=>$correct,'score'=>$final_point]
-            );
+//            Check apakah pengguna pernah menjawab quiz sebelumnya
+            $status = DB::table('quiz_session')->select('quiz_id', 'id')
+                ->where('quiz_id',$id_topik)
+                ->where('id',$user_id)->first();
 
-            if($insert)
+            if($status)
             {
-                Cache::forget($session_id);
-                return response()->json(
-                    [
-                        'status'=>'success',
-                        'msg'=>'Jawaban Sudah DI Submit',
-                        'correct'=>$correct,
-                        'wrong'=>$wrong,
-                        'score'=>$final_point
-                    ],201
-                );
+
+                if($status->quiz_id==$id_topik && $status->id==$user_id)
+                {
+//                Quiz SUdah dijawab
+                    return response()->json(
+                        [
+                            'data'=>null,
+                            'errors'=>[
+                                'code'=>2,
+                                'msg'=>'Quiz Sudah Pernah Dijawab'
+                            ],
+                        ], 404
+                    );
+
+                }
+                else
+                {
+                    $insert=DB::table('quiz_session')->insert(
+                        ['id_session' => $session_id,'starting_time'=>$time,'quiz_id'=>$id_topik,'id'=>$user_id,'wrong_count'=>$wrong,'correct_count'=>$correct,'score'=>$final_point]
+                    );
+
+                    if($insert)
+                    {
+                        Cache::forget($session_id);
+                        return response()->json(
+                            [
+                                'status'=>'success',
+                                'msg'=>'Jawaban Sudah Dis Submit',
+                                'correct'=>$correct,
+                                'wrong'=>$wrong,
+                                'score'=>$final_point
+                            ],201
+                        );
+                    }
+                    else
+                    {
+                        return response()->json(
+                            [
+                                'data'=>null,
+                                'errors'=>[
+                                    'code'=>1,
+                                    'msg'=>'Gagal menyimpan jawaban'
+                                ],
+                            ], 404
+                        );
+                    }
+                }
             }
             else
             {
-                return response()->json(
-                    [
-                        'status'=>'failed',
-                        'msg'=>'Gagal Menyimpan Jawaban',
-                    ], 404
+                $insert=DB::table('quiz_session')->insert(
+                    ['id_session' => $session_id,'starting_time'=>$time,'quiz_id'=>$id_topik,'id'=>$user_id,'wrong_count'=>$wrong,'correct_count'=>$correct,'score'=>$final_point]
                 );
+
+                if($insert)
+                {
+                    Cache::forget($session_id);
+                    return response()->json(
+                        [
+                            'status'=>'success',
+                            'msg'=>'Jawaban Sudah Dis Submit',
+                            'correct'=>$correct,
+                            'wrong'=>$wrong,
+                            'score'=>$final_point
+                        ],201
+                    );
+                }
+                else
+                {
+                    return response()->json(
+                        [
+                            'data'=>null,
+                            'errors'=>[
+                                'code'=>1,
+                                'msg'=>'Gagal menyimpan jawaban'
+                            ],
+                        ], 404
+                    );
+                }
             }
+
+
 
 
 

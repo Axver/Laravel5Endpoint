@@ -113,6 +113,10 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'PdfController@downbymodul'
         ]);
+    Route::post('/word/sertifikat',
+        [
+            'uses'=>'WordController@sertifikat'
+        ]);
 
 
 

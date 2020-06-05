@@ -375,12 +375,12 @@ public function uploadbukti(Request $request)
     $this->validate($request,
         [
             'id_pembelian'=>'required',
-            'token'=>'required',
+
 
         ]);
 
     $id_pembelian=$request->input('id_pembelian');
-    $jenis_produk=$request->input('token');
+//    $jenis_produk=$request->input('token');
 
 //    Cek apakah pembelian masih ada
     if (Cache::has($id_pembelian.'_')) {
@@ -398,38 +398,56 @@ public function uploadbukti(Request $request)
             $path=$request->file('image')->move(public_path('/upload'),$md5Name.'.'.$guessExtension);
             $photoUrl=url('/upload',$md5Name.'.'.$extension);
 
-//            Update Gambaar Di Database
-            $uuid=Uuid::generate()->string;
-            $update = DB::table('pembelian_produk')
-                ->where('id_pembelian', $id_pembelian)
-                ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
-
-            if($update)
+            if(strtolower($extension)=='png'||strtolower($extension)=='jpg'||strtolower($extension)=='bmp'||strtolower($extension)=='jpeg')
             {
-                return response()->json(
-                    [
-                        'status'=>'success',
-                        'data'=>[
-                            'code'=>0,
-                            'msg'=>'Image Upload Sucessfully',
-                            'url'=>$photoUrl,
-                            'name'=>$md5Name.'.'.$extension,
-                            'id_image'=>$uuid
-                        ]
+                //            Update Gambaar Di Database
+                $uuid=Uuid::generate()->string;
+                $update = DB::table('pembelian_produk')
+                    ->where('id_pembelian', $id_pembelian)
+                    ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
 
-                    ], 201
-                );
+
+                if($update)
+                {
+                    return response()->json(
+                        [
+                            'status'=>'success',
+                            'data'=>[
+                                'code'=>0,
+                                'msg'=>'Image Upload Sucessfully',
+                                'url'=>$photoUrl,
+                                'name'=>$md5Name.'.'.$extension,
+                                'id_image'=>$uuid
+                            ]
+
+                        ], 201
+                    );
+                }
+                else
+                {
+                    return response()->json(
+                        [
+                            'status'=>'failed',
+                            'msg'=>'Gagal Menambahkan Gambar'
+                        ], 404
+                    );
+                }
+                return $photoUrl ;
             }
             else
             {
                 return response()->json(
                     [
-                        'status'=>'failed',
-                        'msg'=>'Gagal Menambahkan Gambar'
+                        'data'=>null,
+                        'errors'=>[
+                            'code'=>1,
+                            'msg'=>'Type file not accepted'
+                        ]
                     ], 404
                 );
             }
-            return $photoUrl ;
+
+
         }
         else
         {

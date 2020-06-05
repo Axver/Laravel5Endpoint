@@ -8,6 +8,7 @@ use JWTAuth;
 use JWTAuthException;
 use App\User;
 use Illuminate\Support\Facades\DB;
+use App\Exceptions;
 
 
 class AuthController extends Controller
@@ -34,56 +35,76 @@ class AuthController extends Controller
                'password'=>bcrypt($password)
            ]
        );
+//Check apakah email sudah terdaftar
+        $getemail=DB::table('users')->select('email')->where('email',$email)->first();
+        if($email==$getemail->email)
+        {
+            $response=[
+                'data'=>null,
+                'errors'=>[
+                    'code'=>0,
+                    'msg'=>'Email Already Registered'
+                ]
 
-       $credential=
-           [
-               'email'=>$email,
-               'password'=>$password
-           ];
+            ];
 
-       if($user->save())
-       {
-           $token=null;
+            return response()->json($response,404);
 
-           try{
-               if(!$token=JWTAuth::attempt($credential))
-               {
-                   return response()->json(
-                       [
-                           'msg'=>'Email atau Password Salah'
-                       ], 404
-                   );
-               }
-           }
-           catch (JWTException $e)
-           {
-               return response()->json(
-                   [
-                       'msg'=>'Failed To Create Token'
-                   ], 400
-               );
-           }
+        }
+        else
+        {
+            $credential=
+                [
+                    'email'=>$email,
+                    'password'=>$password
+                ];
 
-           $user->signin=[
-               'href'=>'api/v1/user/signin',
-               'method'=>'POST',
-               'params'=>'email,password'
-           ];
-           $response=[
-               'code'=>0,
-               'status'=>'success',
-               'data'=>[
-                   'user'=>$user,
-                   'token'=>$token
-               ]
+            if($user->save())
+            {
+                $token=null;
 
-           ];
+                try{
+                    if(!$token=JWTAuth::attempt($credential))
+                    {
+                        return response()->json(
+                            [
+                                'msg'=>'Email atau Password Salah'
+                            ], 404
+                        );
+                    }
+                }
+                catch (JWTException $e)
+                {
+                    return response()->json(
+                        [
+                            'msg'=>'Failed To Create Token'
+                        ], 400
+                    );
+                }
+
+                $user->signin=[
+                    'href'=>'api/v1/user/signin',
+                    'method'=>'POST',
+                    'params'=>'email,password'
+                ];
+                $response=[
+                    'code'=>0,
+                    'status'=>'success',
+                    'data'=>[
+                        'user'=>$user,
+                        'token'=>$token
+                    ]
+
+                ];
 
 
-           return response()->json($response,201);
+                return response()->json($response,201);
 
 
-       }
+            }
+        }
+
+
 
         $response=[
             'msg'=>'Error'
