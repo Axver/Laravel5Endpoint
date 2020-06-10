@@ -782,6 +782,78 @@ if($var)
     $expiresAt = Carbon::now()->addMinutes(1500);
     Cache::put($uuid, $uuid, $expiresAt);
 //    Jika berhasil maka generate Email dan Password untuk user
+    $countPaket=count($paket_data);
+    $i=0;
+    $email_builder='';
+    while($i<$countPaket)
+    {
+
+
+
+        $var=DB::transaction(function() use ($paket_data,$i,$email_builder){
+//                Check Max user
+
+            $account_generated=[];
+            $max=$user = DB::table('paket')->where('id', $paket_data[$i]['id'])->first();
+            if($max)
+            {
+                $max_user=$max->max_user;
+                $list_email=explode(',',$paket_data[$i]['list_email']);
+                $jumlah_email=count($list_email);
+
+
+                if($jumlah_email<=$max_user)
+                {
+                    $j=0;
+
+                    while($j<$jumlah_email)
+                    {
+
+                        $email_builder=$email_builder.$list_email[$j].',';
+                        $j++;
+
+                    }
+//                    Masukkan data email ke chache
+                    $expiresAt = Carbon::now()->addMinutes(1500);
+                    Cache::put($paket_data[$i]['id_pembelian'], $email_builder, $expiresAt);
+
+                    return 1;
+                }
+                else
+                {
+
+                    return response()->json(
+                        [
+                            'msg'=>'failed',
+                            'message'=>'Jumlah Email Melebihi Kuota Paket'
+                        ], 404
+                    );
+
+                }
+
+            }
+            else
+            {
+                return response()->json(
+                    [
+                        'msg'=>'failed',
+                        'message'=>'Max Kuota Tidak Ditemukan'
+                    ], 404
+                );
+            }
+
+        });
+
+        $i++;
+    }
+
+//    Cek jika transaction var berhasil atau tidak
+    if($var==1)
+    {
+//        Generate response untuk user
+        
+        return "Berhasil";
+    }
 
     return $var;
 }
