@@ -779,6 +779,10 @@ public function belibatch(Request $request)
 
 if($var)
 {
+    $expiresAt = Carbon::now()->addMinutes(1500);
+    Cache::put($uuid, $uuid, $expiresAt);
+//    Jika berhasil maka generate Email dan Password untuk user
+
     return $var;
 }
 else
