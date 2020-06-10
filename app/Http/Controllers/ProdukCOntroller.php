@@ -790,6 +790,7 @@ if($var)
 
 
 
+
         $var=DB::transaction(function() use ($paket_data,$i,$email_builder){
 //                Check Max user
 
@@ -804,6 +805,7 @@ if($var)
 
                 if($jumlah_email<=$max_user)
                 {
+
                     $j=0;
 
                     while($j<$jumlah_email)
@@ -822,24 +824,14 @@ if($var)
                 else
                 {
 
-                    return response()->json(
-                        [
-                            'msg'=>'failed',
-                            'message'=>'Jumlah Email Melebihi Kuota Paket'
-                        ], 404
-                    );
+                  return 2;
 
                 }
 
             }
             else
             {
-                return response()->json(
-                    [
-                        'msg'=>'failed',
-                        'message'=>'Max Kuota Tidak Ditemukan'
-                    ], 404
-                );
+             return 3;
             }
 
         });
@@ -851,8 +843,56 @@ if($var)
     if($var==1)
     {
 //        Generate response untuk user
-        
-        return "Berhasil";
+        $i=0;
+        $harga_paket=0;
+
+        while($i<$countPaket)
+        {
+            $max=$user = DB::table('paket')->where('id', $paket_data[$i]['id'])->first();
+            $harga_paket=$harga_paket+$max->harga;
+            $i++;
+        }
+
+        $countTopik=count($topik_data);
+        $i=0;
+
+        while($i<$countTopik)
+        {
+            $max=$user = DB::table('topik')->where('id', $topik_data[$i]['id_produk'])->first();
+            $harga_paket=$harga_paket+$max->harga;
+            $i++;
+        }
+
+        return response()->json(
+            [
+                'msg'=>'success',
+                'data'=>[
+                    'code'=>0,
+                    'list_topik'=>$topik_data,
+                    'list_paket'=>$paket_data,
+                    'expired'=>$expiresAt
+                ],
+                'total'=>$harga_paket
+            ], 201
+        );
+    }
+    else if($var==2)
+    {
+        return response()->json(
+            [
+                'msg'=>'failed',
+                'message'=>'Jumlah Email Melebihi Kuota Paket'
+            ], 404
+        );
+    }
+    else if($var==3)
+    {
+        return response()->json(
+            [
+                'msg'=>'failed',
+                'message'=>'Max Kuota Tidak Ditemukan'
+            ], 404
+        );
     }
 
     return $var;
