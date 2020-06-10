@@ -118,6 +118,14 @@ Route::group(['prefix'=>'v1'],function()
             'uses'=>'WordController@sertifikat'
         ]);
 
+    Route::post('/produk/listbeli',
+        [
+            'uses'=>'ProdukCOntroller@listbeli'
+        ]);
+    Route::post('/produk/belibatch',
+        [
+            'uses'=>'ProdukCOntroller@belibatch'
+        ]);
 
 
 

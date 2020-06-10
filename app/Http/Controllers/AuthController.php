@@ -36,20 +36,74 @@ class AuthController extends Controller
            ]
        );
 //Check apakah email sudah terdaftar
-        $getemail=DB::table('users')->select('email')->where('email',$email)->first();
-        if($email==$getemail->email)
+        if($getemail=DB::table('users')->select('email')->where('email',$email)->first())
         {
-            $response=[
-                'data'=>null,
-                'errors'=>[
-                    'code'=>0,
-                    'msg'=>'Email Already Registered'
-                ]
+            if($email==$getemail->email)
+            {
+                $response=[
+                    'data'=>null,
+                    'errors'=>[
+                        'code'=>0,
+                        'msg'=>'Email Already Registered'
+                    ]
 
-            ];
+                ];
 
-            return response()->json($response,404);
+                return response()->json($response,404);
 
+            }
+            else
+            {
+                $credential=
+                    [
+                        'email'=>$email,
+                        'password'=>$password
+                    ];
+
+                if($user->save())
+                {
+                    $token=null;
+
+                    try{
+                        if(!$token=JWTAuth::attempt($credential))
+                        {
+                            return response()->json(
+                                [
+                                    'msg'=>'Email atau Password Salah'
+                                ], 404
+                            );
+                        }
+                    }
+                    catch (JWTException $e)
+                    {
+                        return response()->json(
+                            [
+                                'msg'=>'Failed To Create Token'
+                            ], 400
+                        );
+                    }
+
+                    $user->signin=[
+                        'href'=>'api/v1/user/signin',
+                        'method'=>'POST',
+                        'params'=>'email,password'
+                    ];
+                    $response=[
+                        'code'=>0,
+                        'status'=>'success',
+                        'data'=>[
+                            'user'=>$user,
+                            'token'=>$token
+                        ]
+
+                    ];
+
+
+                    return response()->json($response,201);
+
+
+                }
+            }
         }
         else
         {
@@ -106,10 +160,8 @@ class AuthController extends Controller
 
 
 
-        $response=[
-            'msg'=>'Error'
 
-        ];
+
 
         return response()->json($response,404);
 

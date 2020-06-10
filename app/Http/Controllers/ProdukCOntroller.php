@@ -683,6 +683,112 @@ public function topikfrompaket(Request $request)
 }
 
 
+public function listbeli(Request $request)
+{
+    return "Berhasil";
+}
+
+public function belibatch(Request $request)
+{
+    $this->validate($request,
+        [
+            'user_token'=>'required',
+            'list'=>'required',
+        ]);
+
+    $user_token=$request->input('user_token');
+    $list=$request->input('list');
+
+    if($gettoken=DB::table('users')->select('remember_token','id')->where('remember_token',$user_token)->first())
+    {
+        if($user_token==$gettoken->remember_token)
+        {
+            $id_pembelian=Uuid::generate()->string;
+            $id_user=$gettoken->id;
+            $list=json_decode($list);
+            $count=count($list->data);
+            $i=0;
+            $topik_data=array();
+            $paket_data=array();
+            $count_topik=0;
+            $counnt_paket=0;
+            while($i<$count)
+            {
+                $jenis=$list->data[$i]->jenis;
+                $produk_paket_id=$list->data[$i]->produk_paket_id;
+                $email=$list->data[$i]->email;
+
+//                jenis untuk mennentukan apakah yang dibeli adalah paket ataupun produk , produk disebut juga topik
+//                jenis: 1 -> Pertopik, Jenis: 2->Perpaket
+                if($jenis=='1')
+                {
+                    $uuid=Uuid::generate()->string;
+                    $topik_data_ew=array('id_pembelian' =>$uuid , 'id_produk' => $produk_paket_id,'created_at'=>Carbon::now(),'pembelian_id_pembelian'=>$id_pembelian);
+                    $topik_data[$count_topik]=$topik_data_ew;
+                    $count_topik++;
+
+                }
+                else if($jenis=='2')
+                {
+                    $uuid=Uuid::generate()->string;
+                    $topik_paket_ew=array('id_pembelian' =>$uuid , 'list_email' => $email,'id'=>$produk_paket_id,'created_at'=>Carbon::now(),'pembelian_id_pembelian'=>$id_pembelian);
+                    $paket_data[$counnt_paket]=$topik_paket_ew;
+                    $counnt_paket++;
+
+                }
+
+
+                $i++;
+            }
+        }
+
+//        Db Traaction untuk menambahkan data
+
+        $var=DB::transaction(function() use ($id_user,$topik_data,$paket_data,$id_pembelian){
+
+            try{
+
+                DB::table('pembelian')->insert(
+                    ['id_pembelian' => $id_pembelian, 'users_id' => $id_user]
+                );
+
+                if(count($topik_data)>0)
+                {
+                    DB::table('pembelian_produk')->insert(
+                        $topik_data
+                    );
+                }
+
+                if(count($paket_data)>0)
+                {
+                    DB::table('pembelian_paket')->insert(
+                        $paket_data
+                    );
+                }
+
+                return "Berhasil";
+
+            } catch (\Exception $e) {
+                return  $e->getMessage();
+            }
+
+
+
+
+        });
+
+if($var)
+{
+    return $var;
+}
+else
+{
+    return "Gagal";
+}
+    }
+}
+
+
 
 
 
