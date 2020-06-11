@@ -35,6 +35,7 @@ class ListUser extends Mailable
             ->with(
                 [
                     'data' => $this->variable,
+                    'data2'=> $this->variable2,
 
                 ]);
     }

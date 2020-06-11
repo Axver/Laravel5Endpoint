@@ -6,6 +6,7 @@ use App\Mail\Verifikasi;
 use App\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use phpDocumentor\Reflection\Types\Array_;
 use Webpatser\Uuid\Uuid;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -375,20 +376,13 @@ public function uploadbukti(Request $request)
     $this->validate($request,
         [
             'id_pembelian'=>'required',
-
-
+            'token'=>'required'
         ]);
 
     $id_pembelian=$request->input('id_pembelian');
-//    $jenis_produk=$request->input('token');
-
+    $token=$request->input('token');
 //    Cek apakah pembelian masih ada
-    if (Cache::has($id_pembelian.'_')) {
-        $value = Cache::get($id_pembelian.'_');
-
-        if($value=='produk')
-        {
-//            Upload Bukti Untuk Produk
+    if (Cache::has($id_pembelian)) {
             $now=Carbon::now();
             $md5Name = md5_file($request->file('image')->getRealPath());
             $md5Name=$md5Name.md5($now);
@@ -402,13 +396,14 @@ public function uploadbukti(Request $request)
             {
                 //            Update Gambaar Di Database
                 $uuid=Uuid::generate()->string;
-                $update = DB::table('pembelian_produk')
+                $update = DB::table('pembelian')
                     ->where('id_pembelian', $id_pembelian)
                     ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
 
 
                 if($update)
                 {
+                    Cache::forget($id_pembelian);
                     return response()->json(
                         [
                             'status'=>'success',
@@ -432,7 +427,7 @@ public function uploadbukti(Request $request)
                         ], 404
                     );
                 }
-                return $photoUrl ;
+
             }
             else
             {
@@ -448,48 +443,7 @@ public function uploadbukti(Request $request)
             }
 
 
-        }
-        else
-        {
-//            Upload Bukti Untuk Produk
-            $now=Carbon::now();
-            $md5Name = md5_file($request->file('image')->getRealPath());
-            $md5Name=$md5Name.md5($now);
-            $md5Name=md5($md5Name);
-            $guessExtension = $request->file('image')->guessExtension();
-            $extension = $request->file('image')->extension();
-            $path=$request->file('image')->move(public_path('/upload'),$md5Name.'.'.$guessExtension);
-            $photoUrl=url('/upload',$md5Name.'.'.$extension);
 
-//            Update Gambaar Di Database
-            $uuid=Uuid::generate()->string;
-            $update = DB::table('pembelian_paket')
-                ->where('id_pembelian', $id_pembelian)
-                ->update(['bukti_pembayaran' => $md5Name.'.'.$extension]);
-
-            if($update)
-            {
-                return response()->json(
-                    [
-                        'status'=>'success',
-                        'msg'=>'Berhasil Menambahkan Gambar',
-                        'url'=>$photoUrl,
-                        'name'=>$md5Name.'.'.$extension,
-                        'id'=>$uuid
-                    ], 201
-                );
-            }
-            else
-            {
-                return response()->json(
-                    [
-                        'status'=>'failed',
-                        'msg'=>'Gagal Menambahkan Gambar'
-                    ], 404
-                );
-            }
-            return $photoUrl ;
-        }
     }
     else
     {
@@ -512,121 +466,105 @@ public function verifikasi(Request $request)
     $this->validate($request,
         [
             'id_pembelian'=>'required',
-            'jenis'=>'required'
         ]);
     $id_pembelian=$request->input('id_pembelian');
-    $jenis_produk=$request->input('jenis');
-
-//    return $id_pembelian."=====".Cache::get($id_pembelian);
-
-    if($jenis_produk=='paket')
-    {
-//        Update pada pembelian paket
-        if (Cache::has($id_pembelian)) {
             $var=DB::transaction(function() use ($id_pembelian){
-                $affected = DB::table('pembelian_paket')
+                $affected = DB::table('pembelian')
                     ->where('id_pembelian', $id_pembelian)
                     ->update(['status_pembayaran' => "Yes"]);
-                $id_produk=DB::table('pembelian_paket')->select('id')->where('id_pembelian',$id_pembelian)->first();
+                $list_email = DB::table('pembelian_paket')
+                    ->select('list_email')
+                    ->where('pembelian_id_pembelian', $id_pembelian)->get();
 
 
+                return $list_email;
+            });
 
-                $list_user=Cache::get($id_pembelian);
-                $count=count($list_user);
-                $x=0;
-                $new_list_email=[];
-                while($x<$count)
+            if($var)
+            {
+                $length=count($var);
+                $list_email='';
+//                return $length;
+
+                $i=0;
+                while($i<$length)
                 {
-//                    Explode data
-                    $email_g=explode('|',$list_user[$x]);
-//                    Tambahkan kedalam database
-                    $uuid=Uuid::generate()->string;
-                    $id_user=DB::table('users')->select('id')->where('email',$email_g[0])->first();
-                    DB::table('pembelian_paket')->insert(
-                        ['id_pembelian' => $uuid, 'id' => $id_produk->id,'id_user'=>$id_user->id,'status_pembayaran'=>'Yes']
-                    );
-
-                    $x++;
+                    $list_email=$list_email.','.$var[$i]->list_email;
+                    $i++;
                 }
 
 
-//Tambahkan user ke data pembeli
-                $response=[
-                    'status'=>'success',
-                    'message'=>'Pembelian diverifikasi',
-                    'data'=>$list_user,
-                ];
+            }
+            $list_email_new=explode(',',$list_email);
+            $removed = array_shift($list_email_new);
 
-                return $response;
-            });
+//            Generate list user dari list email tersebut
 
-            $list_user=Cache::get($id_pembelian);
 
-            if($var)
-            {
-               $datauser=  $data = DB::table('pembelian_paket')
+            $datauser=  $data = DB::table('pembelian')
                    ->select('email')
-                   ->join('users', 'pembelian_paket.id_user', '=', 'users.id')
-                   ->where('pembelian_paket.id_pembelian', $id_pembelian)
+                   ->join('users', 'pembelian.users_id', '=', 'users.id')
+                   ->where('pembelian.id_pembelian', $id_pembelian)
                    ->first();
-                Mail::to($datauser->email)->send(new ListUser($list_user,$datauser->email));
-            }
-            Cache::forget($id_pembelian);
-            Cache::forget($id_pembelian.'_');
-            return $var;
-        }
-        else
-        {
-           return $response=[
-                'status'=>'failed',
-                'message'=>'Waktu Verifikasi Sudah Expired Atau Pembelian Sudah Di Verifikasi'
-            ];
-        }
 
-    }
-    else
+            $jumlah_email=count($list_email_new);
+
+            $i=0;
+
+    while($i<$jumlah_email)
     {
-//        Update pada pembelian produk
-        if (Cache::has($id_pembelian.'_')) {
-            $var=DB::transaction(function() use ($id_pembelian){
-//              Update tabel pembelian_produk
-                $affected = DB::table('pembelian_produk')
-                    ->where('id_pembelian', $id_pembelian)
-                    ->update(['status_pembayaran' => "Yes"]);
+//                            generate user baru sesuai dengan data ini
+        $name_g=Str::random();
+        $email_g=$list_email_new[$i];
+        $password=Str::random();
+        $password_crypt=bcrypt($password);
+//                            Insert data kedalam database
 
-                $response=[
-                    'status'=>'succcess',
-                    'message'=>'Verifikasi Sukses'
-                ];
-
-                return $response;
-
-            });
-
-            if($var)
+        try
+        {
+//                                Check email jika sudah pernah terdaftar jika sudah kirimkan notifiksi untuk menggunakan password lama
+            if($akun=$user = DB::table('users')->where('email', $email_g)->first())
             {
-                $datauser=  $data = DB::table('pembelian_produk')
-                    ->select('email')
-                    ->join('users', 'pembelian_produk.id_user', '=', 'users.id')
-                    ->where('pembelian_produk.id_pembelian', $id_pembelian)
-                    ->first();
-                Mail::to($datauser->email)->send(new Verifikasi());
+                $account_generated[$i]=$email_g.'|'.'Password:Password Lama';
+            }
+            else
+            {
+
+                $account_generated[$i]=$email_g.'|'.'Password:'.$password;
+                DB::table('users')->insert(
+                    ['name' => $name_g, 'email' => $email_g,'password'=>$password_crypt,'created_at'=>Carbon::now(),'updated_at'=>Carbon::now()]
+                );
+
+
             }
 
-            Cache::forget($id_pembelian);
-            Cache::forget($id_pembelian.'_');
-            return $var;
+
         }
-        else
+        catch (\PDOException $e)
         {
-           return $response=[
-                'status'=>'failed',
-                'message'=>'Waktu Verifikasi Sudah Expired Atau Pembelian Sudah Di Verifikasi'
-            ];
+
         }
+
+
+        $i++;
+
     }
 
-//            Remove Redis
+//    return var_dump($account_generated);
+
+   $send= Mail::to($datauser->email)->send(new ListUser($account_generated,$datauser->email));
+
+    return response()->json(
+        [
+            'status'=>'success',
+            'data'=>[
+                'msg'=>'account generated and email already sent',
+                'users'=>$account_generated
+            ]
+        ], 201
+    );
+
+
 
 }
 
@@ -683,10 +621,6 @@ public function topikfrompaket(Request $request)
 }
 
 
-public function listbeli(Request $request)
-{
-    return "Berhasil";
-}
 
 public function belibatch(Request $request)
 {
@@ -780,7 +714,7 @@ public function belibatch(Request $request)
 if($var)
 {
     $expiresAt = Carbon::now()->addMinutes(1500);
-    Cache::put($uuid, $uuid, $expiresAt);
+    Cache::put($id_pembelian, $id_pembelian, $expiresAt);
 //    Jika berhasil maka generate Email dan Password untuk user
     $countPaket=count($paket_data);
     $i=0;
@@ -816,8 +750,8 @@ if($var)
 
                     }
 //                    Masukkan data email ke chache
-                    $expiresAt = Carbon::now()->addMinutes(1500);
-                    Cache::put($paket_data[$i]['id_pembelian'], $email_builder, $expiresAt);
+//                    $expiresAt = Carbon::now()->addMinutes(1500);
+//                    Cache::put($paket_data[$i]['id_pembelian'], $email_builder, $expiresAt);
 
                     return 1;
                 }
@@ -902,9 +836,88 @@ else
     return "Gagal";
 }
     }
+    else
+    {
+        return response()->json(
+            [
+                'msg'=>'failed',
+                'message'=>'Token Not Match'
+            ], 404
+        );
+    }
 }
 
 
+    public function listbeli(Request $request)
+    {
+        $this->validate($request,
+            [
+                'user_token'=>'required',
+                'id_pembelian'=>'required',
+            ]);
+
+        $user_token=$request->input('user_token');
+        $id_pembelian=$request->input('id_pembelian');
+
+
+
+
+        if($users = DB::table('users')->where('remember_token', '=', $user_token)->first())
+        {
+            if($user_token==$users->remember_token)
+            {
+                $pembelian = DB::table('pembelian')->select('bukti_pembayaran','status_pembayaran')
+                        ->leftJoin('pembelian_paket','pembelian_paket.pembelian_id_pembelian','pembelian.id_pembelian')
+                        ->leftJoin('paket','pembelian_paket.id','paket.id')
+                        ->leftJoin('pembelian_produk','pembelian_produk.pembelian_id_pembelian','pembelian.id_pembelian')
+                        ->leftJoin('topik','pembelian_produk.id_produk','topik.id')
+                    ->where('pembelian.id_pembelian','=',$id_pembelian)
+                    ->where('pembelian.users_id','=',$users->id)->first();
+                $list_paket=$users = DB::table('paket')
+                    ->select('paket.*')
+                    ->leftJoin('pembelian_paket','pembelian_paket.id','paket.id')
+                    ->where('pembelian_id_pembelian', '=', $id_pembelian)
+
+                    ->get();
+
+                $list_topik=$users = DB::table('topik')
+                    ->select('topik.*')
+                    ->leftJoin('pembelian_produk','pembelian_produk.id_produk','topik.id')
+                    ->where('pembelian_id_pembelian', '=', $id_pembelian)
+
+                    ->get();
+
+                if($pembelian)
+                {
+                    return response()->json(
+                        [
+                            'msg'=>'success',
+                            'data'=>[
+                                'code'=>0,
+                                'pembayaran'=>$pembelian,
+                                'list_paket'=>$list_paket,
+                                'list_topik'=>$list_topik
+                            ],
+                            'id_pembelian'=>$id_pembelian
+                        ], 200
+                    );
+                }
+            }
+            else
+            {
+
+            }
+        }
+        else
+        {
+            return response()->json(
+                [
+                    'msg'=>'failed',
+                    'message'=>'Token No Match'
+                ], 404
+            );
+        }
+    }
 
 
 
