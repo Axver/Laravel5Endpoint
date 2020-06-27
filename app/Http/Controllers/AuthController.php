@@ -29,14 +29,6 @@ class AuthController extends Controller
         $email=$request->input('email');
         $password=$request->input('password');
 
-        $user = new User(
-            [
-                'name'=>$name,
-                'email'=>$email,
-                'password'=>bcrypt($password)
-            ]
-        );
-
         $user = User::where('email',$email)->first();
 
         if($user){
@@ -44,6 +36,14 @@ class AuthController extends Controller
         }
         else
         {
+            $user = new User(
+                [
+                    'name'=>$name,
+                    'email'=>$email,
+                    'password'=>bcrypt($password)
+                ]
+            );
+            
             if($user->save())
             {
                 try{
