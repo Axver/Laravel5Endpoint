@@ -2,9 +2,12 @@
 
 namespace App\Http\Middleware;
 
+use App\Helpers\Result;
 use Closure;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 
 class VerifyJWTToken
 {
@@ -19,21 +22,15 @@ class VerifyJWTToken
     {
         try{
             $user=JWTAuth::toUser($request->input('token'));
+        }catch(TokenExpiredException $ex){
+            return response()->json(['token_expired'],$ex->getStatusCode());
+
+        }catch(TokenInvalidException $ex){
+            return response()->json(['token_invalid'],$ex->getStatusCode());
         }
         catch (JWTException $e)
         {
-            if($e instanceof \Tymon\JWTAuth\Exceptions\TokenExpiredException)
-            {
-                return response()->json(['token_expired'],$e->getStatusCode());
-            }
-            else if($e instanceof \Tymon\JWTAuth\Exceptions\TokenInvalidException)
-            {
-                return response()->json(['token_invalid'],$e->getStatusCode());
-            }
-            else
-            {
-                return response()->json(['error'=>'token_required']);
-            }
+            return response()->json(['error'=>'token_required'], 500);
         }
         return $next($request);
     }
