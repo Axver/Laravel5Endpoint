@@ -39,7 +39,7 @@ class AuthController extends Controller
         $user = User::where('email',$email)->first();
 
         if($user){
-            return response()->json(Result::failed("email.found", "Email is already registered"), 200);
+            return failure("email.found", "Email is already registered");
         }
         else
         {
@@ -55,15 +55,15 @@ class AuthController extends Controller
                         'access_token'=>$access_token
                     ];
 
-                    return response()->json(Result::success($resp), 201);
+                    return success($resp, true);
                 }
                 catch (JWTException $e){
-                    return response()->json(Result::failed("generate.token", "Error making access token $e"), 500);
+                    return system_failure("Error making access token $e");
                 }
             }
         }
 
-        return response()->json(Result::failed("cannot.save", "Cannot save"),404);
+        return system_failure("Cannot save user");
     }
 
     public function signin(Request $request)
@@ -93,16 +93,16 @@ class AuthController extends Controller
                         'access_token'=>$access_token
                     ];
 
-                    return response()->json(Result::success($response), 201);    
+                    return success($response);
                 }
             }
             catch (JWTException $e)
             {
-                return response()->json(Result::failed("generate.token", "Error making access token $e"), 500);
+                return system_failure("Error making access token $e");
             }
         }
 
-        return response()->json(Result::failed("not_matches", "Email or Password not Matches"));
+        return failure("not_matches", "Email or Password not Matches");
     }
 
     public function logout(Request $request)

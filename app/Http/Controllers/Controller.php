@@ -40,4 +40,19 @@ class Controller extends BaseController
         }
         return parent::buildFailedValidationResponse($request, $errors);
     }
+
+    protected function success($payload, bool $isAdded = false){
+        if($isAdded == true){
+            return request()->json(Result::success($payload), 201);
+        } 
+        return request()->json(Result::success($payload), 200);
+    }
+
+    protected function failure($code, $message){
+        return request()->json(Result::failed($code, $message), 202);
+    }
+
+    protected function system_failure($message){
+        return request()->json($message, 500);
+    }
 }
