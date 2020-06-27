@@ -45,14 +45,15 @@ class Controller extends BaseController
         if($isAdded == true){
             return request()->json(Result::success($payload), 201);
         } 
-        return request()->json(Result::success($payload), 200);
+        return response()->json(Result::success($payload), 200);
     }
 
     protected function failure($code, $message){
-        return request()->json(Result::failed($code, $message), 202);
+        return response()->json(Result::failed($code, $message), 202);
     }
 
     protected function system_failure($message){
-        return request()->json($message, 500);
+        return response()->json($message, 500);
     }
+
 }

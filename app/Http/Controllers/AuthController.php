@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use App\Exceptions;
 use App\Helpers\Result;
 use Illuminate\Contracts\Validation\Validator;
+use Namshi\JOSE\JWT;
 
 class AuthController extends Controller
 {
@@ -47,23 +48,25 @@ class AuthController extends Controller
             {
                 try{
                     $access_token = JWTAuth::fromUser($user);
+                    $expiration = JWTAuth::getPayload($access_token)["exp"];
                     $resp = [
                         'user'=> [
                             'name'=> $name,
                             'email' => $email
                         ],
-                        'access_token'=>$access_token
+                        'token'=>$access_token,
+                        'expiration'=>$expiration
                     ];
 
-                    return success($resp, true);
+                    return $this->success($resp, true);
                 }
                 catch (JWTException $e){
-                    return system_failure("Error making access token $e");
+                    return $this->system_failure("Error making access token $e");
                 }
             }
         }
 
-        return system_failure("Cannot save user");
+        return $this->system_failure("Cannot save user");
     }
 
     public function signin(Request $request)
@@ -85,24 +88,26 @@ class AuthController extends Controller
             try{
                 if($access_token=JWTAuth::attempt($credential))
                 {
+                    $expiration = JWTAuth::getPayload($access_token)["exp"];
                     $response=[
                         'user'=> [
                             'name'=>$user->name,
                             'email'=>$user->email
                         ],
-                        'access_token'=>$access_token
+                        'token'=>$access_token,
+                        'expiration'=>$expiration
                     ];
 
-                    return success($response);
+                    return $this->success($response);
                 }
             }
             catch (JWTException $e)
             {
-                return system_failure("Error making access token $e");
+                return $this->system_failure("Error making access token $e");
             }
         }
 
-        return failure("not_matches", "Email or Password not Matches");
+        return $this->failure("not_matches", "Email or Password not Matches");
     }
 
     public function logout(Request $request)
