@@ -9,163 +9,61 @@ use JWTAuthException;
 use App\User;
 use Illuminate\Support\Facades\DB;
 use App\Exceptions;
-
+use App\Helpers\Result;
+use Illuminate\Contracts\Validation\Validator;
 
 class AuthController extends Controller
 {
+
     public function store(Request $request)
     {
-       $this->validate($request,
-           [
-               'name'=>'required',
-               'email'=>'required',
-               'password'=>'required'
-           ]);
+        $this->validate($request,
+            [
+                'name'=>'required',
+                'email'=>'required',
+                'password'=>'required'
+            ]);
 
-       $name=$request->input('name');
-       $email=$request->input('email');
-       $password=$request->input('password');
+        $name=$request->input('name');
+        $email=$request->input('email');
+        $password=$request->input('password');
 
+        $user = new User(
+            [
+                'name'=>$name,
+                'email'=>$email,
+                'password'=>bcrypt($password)
+            ]
+        );
 
+        $user = User::where('email',$email)->first();
 
-       $user = new User(
-           [
-               'name'=>$name,
-               'email'=>$email,
-               'password'=>bcrypt($password)
-           ]
-       );
-//Check apakah email sudah terdaftar
-        if($getemail=DB::table('users')->select('email')->where('email',$email)->first())
-        {
-            if($email==$getemail->email)
-            {
-                $response=[
-                    'data'=>null,
-                    'errors'=>[
-                        'code'=>0,
-                        'msg'=>'Email Already Registered'
-                    ]
-
-                ];
-
-                return response()->json($response,404);
-
-            }
-            else
-            {
-                $credential=
-                    [
-                        'email'=>$email,
-                        'password'=>$password
-                    ];
-
-                if($user->save())
-                {
-                    $token=null;
-
-                    try{
-                        if(!$token=JWTAuth::attempt($credential))
-                        {
-                            return response()->json(
-                                [
-                                    'msg'=>'Email atau Password Salah'
-                                ], 404
-                            );
-                        }
-                    }
-                    catch (JWTException $e)
-                    {
-                        return response()->json(
-                            [
-                                'msg'=>'Failed To Create Token'
-                            ], 400
-                        );
-                    }
-
-                    $user->signin=[
-                        'href'=>'api/v1/user/signin',
-                        'method'=>'POST',
-                        'params'=>'email,password'
-                    ];
-                    $response=[
-                        'code'=>0,
-                        'status'=>'success',
-                        'data'=>[
-                            'user'=>$user,
-                            'token'=>$token
-                        ]
-
-                    ];
-
-
-                    return response()->json($response,201);
-
-
-                }
-            }
+        if($user){
+            return response()->json(Result::failed("email.found", "Email is already registered"), 200);
         }
         else
         {
-            $credential=
-                [
-                    'email'=>$email,
-                    'password'=>$password
-                ];
-
             if($user->save())
             {
-                $token=null;
-
                 try{
-                    if(!$token=JWTAuth::attempt($credential))
-                    {
-                        return response()->json(
-                            [
-                                'msg'=>'Email atau Password Salah'
-                            ], 404
-                        );
-                    }
+                    $access_token = JWTAuth::fromUser($user);
+                    $resp = [
+                        'user'=> [
+                            'name'=> $name,
+                            'email' => $email
+                        ],
+                        'access_token'=>$access_token
+                    ];
+
+                    return response()->json(Result::success($resp), 201);
                 }
-                catch (JWTException $e)
-                {
-                    return response()->json(
-                        [
-                            'msg'=>'Failed To Create Token'
-                        ], 400
-                    );
+                catch (JWTException $e){
+                    return response()->json(Result::failed("generate.token", "Error making access token $e"), 500);
                 }
-
-                $user->signin=[
-                    'href'=>'api/v1/user/signin',
-                    'method'=>'POST',
-                    'params'=>'email,password'
-                ];
-                $response=[
-                    'code'=>0,
-                    'status'=>'success',
-                    'data'=>[
-                        'user'=>$user,
-                        'token'=>$token
-                    ]
-
-                ];
-
-
-                return response()->json($response,201);
-
-
             }
         }
 
-
-
-
-
-
-        return response()->json($response,404);
-
-
+        return response()->json(Result::failed("cannot.save", "Cannot save"),404);
     }
 
     public function signin(Request $request)
@@ -179,76 +77,32 @@ class AuthController extends Controller
         $email=$request->input('email');
         $password=$request->input('password');
 
-        if($user= User::where('email',$email)->first())
+        if($user=User::where('email',$email)->first())
         {
-            $credintial=[
-                'email'=>$email,
-                'password'=>$password
-            ];
+            $credential=['email'=>$email, 'password'=>$password];
 
-            $token=null;
-
+            $access_token=null;
             try{
-                if(!$token=JWTAuth::attempt($credintial))
+                if($access_token=JWTAuth::attempt($credential))
                 {
-                    return response()->json(
-                        [
-                            'data'=>null,
-                            'error'=>[
-                                'code'=>1,
-                                'msg'=>'Failed Generate Tokens',
-                            ]
-                        ], 404
-                    );
+                    $response=[
+                        'user'=> [
+                            'name'=>$user->name,
+                            'email'=>$user->email
+                        ],
+                        'access_token'=>$access_token
+                    ];
+
+                    return response()->json(Result::success($response), 201);    
                 }
             }
             catch (JWTException $e)
             {
-                return response()->json(
-                    [
-                        'data'=>null,
-                        'error'=>[
-                            'code'=>1,
-                            'msg'=>'Failed Generate Tokens',
-                        ]
-                    ], 404
-                );
+                return response()->json(Result::failed("generate.token", "Error making access token $e"), 500);
             }
-
-            $response=[
-                'code'=>0,
-              'status'=>'success',
-                'data'=>[
-                    'user'=>$user,
-                    'token'=>$token
-                ]
-
-            ];
-
-//            Update Remember token pada tabel user
-            $affected = DB::table('users')
-                ->where('email', $email)
-                ->update(['remember_token' => $token]);
-
-            return response()->json($response,201);
-
-        }
-        else
-        {
-            return response()->json(
-                [
-                    'data'=>null,
-                    'error'=>[
-                        'code'=>2,
-                        'msg'=>'Username Or Pssword Not Matchs',
-                    ]
-                ], 404
-            );
         }
 
-
-
-        return response()->json($response,404);
+        return response()->json(Result::failed("not_matches", "Email or Password not Matches"));
     }
 
     public function logout(Request $request)
