@@ -43,7 +43,7 @@ class AuthController extends Controller
                     'password'=>bcrypt($password)
                 ]
             );
-            
+
             if($user->save())
             {
                 try{
@@ -58,7 +58,7 @@ class AuthController extends Controller
                         'expiration'=>$expiration
                     ];
 
-                    return $this->success($resp, true);
+                    return $this->addedSuccess($resp);
                 }
                 catch (JWTException $e){
                     return $this->system_failure("Error making access token $e");
