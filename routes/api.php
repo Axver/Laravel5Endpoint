@@ -49,13 +49,9 @@ Route::group(['prefix'=>'v1'],function()
         [
             'uses'=>'ProdukCOntroller@listtraining'
         ]);
-    Route::get('/produk/bytraining',
+    Route::get('/produk/all',
         [
-            'uses'=>'ProdukCOntroller@produkbytraining'
-        ]);
-    Route::get('/produk/bypaket',
-        [
-            'uses'=>'ProdukCOntroller@paketbytraining'
+            'uses'=>'ProdukCOntroller@allproducts'
         ]);
     Route::get('/produk/topikperpaket',
         [
