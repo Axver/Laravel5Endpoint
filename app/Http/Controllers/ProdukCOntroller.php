@@ -19,123 +19,45 @@ class ProdukCOntroller extends Controller
 //    Mengirimkan semua data pelatihan yang ada
     public function listtraining(Request $request)
     {
-        $training = DB::table('training')->select('training.id', 'nama_training','deskripsi','thumbnail','image.name')
-            ->leftJoin('image_triaining','training.id','image_triaining.id')
-            ->leftJoin('image','image_triaining.image','image.image')->get();
-        if(!$training)
-        {
-            $response=[
-                'status'=>'failed'
-            ];
-        }
-        else
-        {
-            foreach ($training as $key=>$data)
-            {
-
-                if($data->name!=null)
-                {
-                    $base_url=url('/').'/upload/'.$data->name;
-                    $data->name=$base_url;
-                }
-
-            }
-            $response=[
-                'status'=>'success',
-                'data'=>$training
-
-            ];
-        }
-        return $response;
+        return $this->success([
+            [
+                "id" => 1,
+                "name" => "Webinar",
+                "thumbnail" => "https://via.placeholder.com/350x150"
+            ],
+            [
+                "id" => 2,
+                "name" => "E-Learning",
+                "thumbnail" => "https://via.placeholder.com/350x150"
+            ],
+            [
+                "id" => 3,
+                "name" => "OJD",
+                "thumbnail" => "https://via.placeholder.com/350x150"
+            ]
+        ]);
     }
 
 //    Menampilkan produk berdasarkan training tertentu
-public function produkbytraining(Request $request)
+public function allproducts(Request $request)
 {
-    $this->validate($request,
-        [
-            'training_id'=>'required',
-        ]);
-    $training_id=$request->input('training_id');
 
-    $produk = DB::table('topik')->select('topik.id', 'training_id','nama_topik','deskripsi_topik','thumbnail','harga','zoom','image.name')
+    $topik = DB::table('topik')->select('topik.id', 'training','nama_topik','deskripsi_topik','thumbnail','harga','zoom','image.name')
         ->leftJoin('image_produk','topik.id','image_produk.id')
         ->leftJoin('image','image_produk.image','image.image')
-        ->where('training_id',$training_id)->get();
-    if(!$produk)
-    {
-        $response=[
-            'status'=>'failed',
-            'msg'=>'failed to get data'
-        ];
-        return response()->json($response,404);
-    }
-    else
-    {
-        foreach ($produk as $key=>$data)
-        {
+        ->get()->toArray();
 
-            if($data->name!=null)
-            {
-                $base_url=url('/').'/upload/'.$data->name;
-                $data->name=$base_url;
-            }
 
-        }
-        $response=[
-            'status'=>'success',
-            'jenis'=>'produk',
-            'data'=>$produk
-
-        ];
-        return response()->json($response,200);
-    }
-
-}
-
-//Menampilkan Paket By Training
-public function paketbytraining(Request $request)
-{
-    $this->validate($request,
-        [
-            'training_id'=>'required',
-        ]);
-    $training_id=$request->input('training_id');
-
-    $paket = DB::table('paket')->select('paket.id', 'training_id','nama_paket','deskripsi','harga','zoom','max_user','image.name')
+    $paket = DB::table('paket')->select('paket.id', 'training','nama_paket','deskripsi','harga','zoom','max_user','image.name')
         ->leftJoin('image_paket','paket.id','image_paket.id')
         ->leftJoin('image','image_paket.image','image.image')
-        ->where('training_id',$training_id)->get();
-    if(!$paket)
-    {
-        $response=[
-            'status'=>'failed',
-            'mdg'=>'failed to get datas'
-        ];
+        ->get()->toArray();
 
-        return response()->json($response,404);
-    }
-    else
-    {
-        foreach ($paket as $key=>$data)
-        {
 
-            if($data->name!=null)
-            {
-                $base_url=url('/').'/upload/'.$data->name;
-                $data->name=$base_url;
-            }
-
-        }
-        $response=[
-            'status'=>'success',
-            'jenis'=>'paket',
-            'data'=>$paket
-
-        ];
-
-        return response()->json($response,200);
-    }
+    return $this->success([
+        "topic" => $topik,
+        "packet" => $paket
+    ]);
 
 }
 

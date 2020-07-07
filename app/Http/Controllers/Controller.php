@@ -13,7 +13,10 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 class Controller extends BaseController
 {
-    use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+    use AuthorizesRequests, DispatchesJobs;
+    use ValidatesRequests {
+        buildFailedValidationResponse as protected oldBuildFailedValidationResponse;
+    }
 
     protected function formatValidationErrors(Validator $validator) : array
     {
@@ -38,7 +41,7 @@ class Controller extends BaseController
         if($request->expectsJson()){
             return new JsonResponse($errors, 200);
         }
-        return parent::buildFailedValidationResponse($request, $errors);
+        return $this->oldBuildFailedValidationResponse($request, $errors);
     }
 
     protected function addedSuccess($payload){
@@ -55,6 +58,12 @@ class Controller extends BaseController
 
     protected function system_failure($message){
         return response()->json($message, 500);
+    }
+
+    protected function getTrainingEnum($id){
+        if($id == 1) return "Webinar";
+        if($id == 2) return "E-Learning";
+        if($id == 3) return "OJD";
     }
 
 }
